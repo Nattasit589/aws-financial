@@ -32,13 +32,15 @@
 .
 ├── README.md                  # คู่มือติดตั้งและรายละเอียดโปรเจกต์
 ├── AGENT.md                   # เอกสารข้อกำหนดสำหรับ AI Agent
+├── QUICKSTART.md              # คู่มือย่อสำหรับกลุ่มอื่น (clone + CloudShell + 3 คำสั่ง)
 ├── SETUP_LEARNER_LAB.md       # คู่มือติดตั้งสำหรับ AWS Academy Learner Lab (เส้นทางหลัก)
 ├── SETUP_GUIDE.md             # คู่มือติดตั้งสำหรับบัญชี AWS ปกติ
 ├── template.yaml              # แม่แบบ AWS SAM สร้างครบทั้ง 5 บริการในคำสั่งเดียว
 ├── template.learner-lab.yaml  # แม่แบบสำหรับ AWS Academy Learner Lab (ใช้ LabRole ที่มีอยู่)
 ├── requirements.txt           # ชี้ไปที่ src/requirements.txt (ไฟล์จริงที่ SAM ใช้)
 ├── scripts/
-│   └── preflight.py           # ตรวจสิทธิ์/บริการก่อน deploy (read-only + ทดสอบ Bedrock 1 ครั้ง)
+│   ├── preflight.py           # ตรวจสิทธิ์/บริการก่อน deploy (read-only + ทดสอบ Bedrock 1 ครั้ง)
+│   └── deploy_learnerlab.sh   # ติดตั้งจบในคำสั่งเดียว (CloudShell / เครื่องตัวเอง)
 └── src/
     ├── requirements.txt       # ไลบรารี Python ที่ SAM ติดตั้งเข้า Lambda
     ├── app.py                 # Entrypoint หลัก (รองรับทั้ง EventBridge Event และ FastAPI/Mangum HTTP)

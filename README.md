@@ -38,6 +38,7 @@
 ก่อน deploy ให้รัน `python scripts/preflight.py` เพื่อตรวจว่าบริการที่ต้องใช้ (CloudFormation, Lambda, DynamoDB, SNS, EventBridge, Bedrock) เปิดใช้งานได้จริงในบัญชีของคุณ
 
 **คู่มือแยกตามประเภทบัญชี:**
+- ⚡ **กลุ่มอื่นที่ต้องการ clone แล้วติดตั้งใน 3 คำสั่ง: [QUICKSTART.md](QUICKSTART.md)** (CloudShell, ไม่ต้องลงอะไรในเครื่อง)
 - 🎓 **AWS Academy Learner Lab (เส้นทางหลักของรายวิชา): [SETUP_LEARNER_LAB.md](SETUP_LEARNER_LAB.md)**
 - ☁️ บัญชี AWS ปกติ: [SETUP_GUIDE.md](SETUP_GUIDE.md)
 
@@ -45,8 +46,9 @@
 
 ## คู่มือการติดตั้งและรันระบบ (Step-by-Step Reproduction Guide)
 
-> คู่มือแบบละเอียดทีละคลิกแยกเป็น 2 ไฟล์ตามประเภทบัญชี:
-> - **AWS Academy Learner Lab → [SETUP_LEARNER_LAB.md](SETUP_LEARNER_LAB.md)** (เส้นทางหลัก)
+> คู่มือแยกตามผู้ใช้:
+> - **กลุ่มอื่นทำตามเร็วๆ → [QUICKSTART.md](QUICKSTART.md)** (clone + CloudShell + สคริปต์เดียวจบ)
+> - **AWS Academy Learner Lab (ละเอียด) → [SETUP_LEARNER_LAB.md](SETUP_LEARNER_LAB.md)**
 > - บัญชี AWS ปกติ → [SETUP_GUIDE.md](SETUP_GUIDE.md)
 
 คู่มือนี้ออกแบบให้กลุ่มผู้ทดสอบสามารถติดตั้งระบบทั้งหมดขึ้นบัญชี AWS ของตนเองจนใช้งานได้จริงภายใน **15 นาที** โดยไม่ต้องสมัคร API Key ภายนอกใดๆ

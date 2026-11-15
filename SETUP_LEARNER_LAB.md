@@ -1,5 +1,8 @@
 # SETUP — AWS Academy Learner Lab (คู่มือหลัก)
 
+> อยากได้ฉบับย่อสำหรับกลุ่มอื่น (clone + CloudShell + คำสั่งเดียว)? ดู **[QUICKSTART.md](QUICKSTART.md)**
+
+
 คู่มือนี้เขียนสำหรับการรันโปรเจกต์ **AI Equity Co-Pilot** บน **AWS Academy Learner Lab** ที่ Region `us-east-1`
 ทำตามลำดับแล้วจบได้ใน **20–30 นาที** (ครั้งแรก) — ถ้าเคยทำแล้ว ครั้งต่อไปเหลือแค่ 3 คำสั่ง
 
