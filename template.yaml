@@ -1,0 +1,135 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >-
+  AI Equity Co-Pilot (Ultra-Lean AWS Serverless Edition)
+  - Lambda Function URL + Mangum (FastAPI หน้าเว็บ + REST API ในตัวเดียว)
+  - DynamoDB (Watchlist แยก Workspace, ประวัติผลวิเคราะห์, TTL Smart Cache)
+  - Bedrock (Converse API), EventBridge (cron หลังตลาดปิด), SNS (อีเมลแจ้งเตือน)
+
+Parameters:
+  AlertEmail:
+    Type: String
+    Description: อีเมลปลายทางสำหรับรับรายงานสรุปจาก Amazon SNS (ต้องกดยืนยันในกล่องจดหมาย)
+    AllowedPattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+    ConstraintDescription: ต้องเป็นอีเมลที่ถูกต้อง
+
+  BedrockModelId:
+    Type: String
+    Default: amazon.nova-lite-v1:0
+    Description: Model ID บน Amazon Bedrock (เช่น amazon.nova-lite-v1:0 หรือ anthropic.claude-3-haiku-20240307-v1:0)
+
+  CacheTtlSeconds:
+    Type: Number
+    Default: 3600
+    MinValue: 60
+    MaxValue: 86400
+    Description: อายุของ Smart Cache ผลวิเคราะห์ (วินาที)
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Handler: app.handler
+    Timeout: 120
+    MemorySize: 512
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        PYTHONUNBUFFERED: "1"
+
+Resources:
+  # ---------- 1) Amazon DynamoDB : Single-Table Design + TTL ----------
+  PortfolioTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: false
+
+  # ---------- 2) Amazon SNS : Topic + Email Subscription ----------
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: AI Equity Co-Pilot Alerts
+
+  AlertEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref AlertTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail
+
+  # ---------- 3) AWS Lambda + Function URL, 4) EventBridge Schedule ----------
+  StockCopilotFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.12
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-app"
+      Description: FastAPI dashboard + AI stock analyzer on AWS Lambda
+      CodeUri: src/
+      Environment:
+        Variables:
+          PORTFOLIO_TABLE: !Ref PortfolioTable
+          SNS_TOPIC_ARN: !Ref AlertTopic
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          CACHE_TTL_SECONDS: !Ref CacheTtlSeconds
+          USD_TO_THB: "36.0"
+          MAX_SYMBOLS: "10"
+      FunctionUrlConfig:
+        AuthType: NONE
+        Cors:
+          AllowOrigins:
+            - "*"
+          AllowMethods:
+            - "*"
+          AllowHeaders:
+            - "*"
+          MaxAge: "86400"
+      Events:
+        DailyMarketClose:
+          Type: Schedule
+          Properties:
+            Name: daily-market-close-analysis
+            Description: ปลุก Lambda วิเคราะห์ทุกพอร์ตอัตโนมัติ 17:15 น. เวลาไทย (10:15 UTC) จันทร์-ศุกร์
+            Schedule: cron(15 10 ? * MON-FRI *)
+            Enabled: true
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PortfolioTable
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt AlertTopic.TopicName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource:
+                - !Sub "arn:aws:bedrock:*::foundation-model/*"
+                - !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/*"
+
+Outputs:
+  DashboardUrl:
+    Description: ลิงก์หน้าเว็บ Dashboard (Lambda Function URL)
+    Value: !GetAtt StockCopilotFunctionUrl.FunctionUrl
+
+  DynamoDBTableName:
+    Description: ชื่อตาราง DynamoDB ที่เก็บ Watchlist และ Cache
+    Value: !Ref PortfolioTable
+
+  SNSTopicArn:
+    Description: ARN ของ SNS Topic สำหรับแจ้งเตือนทางอีเมล
+    Value: !Ref AlertTopic

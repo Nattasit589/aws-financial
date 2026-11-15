@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Equity Co-Pilot — AI Decision Dashboard</title>
+  <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: { 950: '#070b14', 900: '#0b1220', 800: '#111a2c', 700: '#1b2740' }
+          },
+          fontFamily: {
+            sans: ['"IBM Plex Sans Thai"', 'Inter', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { background: radial-gradient(1200px 600px at 15% -10%, #12233f 0%, #070b14 55%, #050810 100%); }
+    .glass { background: rgba(15, 23, 42, 0.62); backdrop-filter: blur(14px); }
+    .score-ring {
+      --pct: 0;
+      --ring: #34d399;
+      width: 108px; height: 108px; border-radius: 9999px;
+      background: conic-gradient(var(--ring) calc(var(--pct) * 1%), #1b2740 0);
+      display: grid; place-items: center;
+      transition: background 0.6s ease;
+    }
+    .score-ring > div {
+      width: 86px; height: 86px; border-radius: 9999px;
+      background: #0b1220; display: grid; place-items: center;
+    }
+    ::-webkit-scrollbar { width: 9px; height: 9px; }
+    ::-webkit-scrollbar-thumb { background: #27344d; border-radius: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    .fade-in { animation: fadeIn .35s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .spinner { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .skeleton { position: relative; overflow: hidden; background: #111a2c; }
+    .skeleton::after {
+      content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(148,163,184,0.09), transparent);
+      animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer { 100% { transform: translateX(100%); } }
+    #portfolio-rows .row:hover { background: rgba(30, 41, 59, 0.45); }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 antialiased font-sans">
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+
+    <!-- Header -->
+    <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+      <div class="flex items-center gap-3">
+        <div class="h-11 w-11 rounded-2xl bg-gradient-to-br from-emerald-400 to-sky-500 grid place-items-center text-ink-950 font-bold text-lg shadow-lg shadow-emerald-500/20">
+          AI
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-semibold tracking-tight">
+            AI Equity <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-sky-400">Co-Pilot</span>
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-400">ผู้ช่วยวิเคราะห์หุ้นไทย (.BK) และสหรัฐฯ ด้วย Generative AI บน AWS Serverless</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-300">
+          <span class="h-2 w-2 rounded-full bg-emerald-400"></span> Lambda · DynamoDB · Bedrock · EventBridge · SNS
+        </span>
+        <button id="btn-cost" class="rounded-xl border border-slate-700 bg-slate-900/70 px-3.5 py-2 text-xs font-medium text-slate-200 hover:border-emerald-400/60 hover:text-emerald-300 transition">
+          Business &amp; Cost
+        </button>
+      </div>
+    </header>
+
+    <div class="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)] items-start">
+
+      <!-- Left: Workspace + Watchlist -->
+      <section class="space-y-5 lg:sticky lg:top-6">
+        <div class="glass rounded-2xl border border-slate-800 p-5">
+          <label class="block text-xs font-medium text-slate-400 mb-2">Workspace Code (แยกพอร์ตผู้ใช้)</label>
+          <div class="flex gap-2">
+            <input id="workspace-input" type="text" value="DEMO-PORT" maxlength="32" spellcheck="false"
+              class="min-w-0 flex-1 rounded-xl bg-ink-950/80 border border-slate-700 px-3 py-2.5 text-sm font-medium tracking-wide uppercase placeholder-slate-500 focus:outline-none focus:border-emerald-400/70"
+              placeholder="เช่น TEST-GROUP1" />
+            <button id="btn-load" class="rounded-xl bg-slate-100 px-3.5 py-2.5 text-sm font-semibold text-ink-950 hover:bg-white transition">
+              โหลดพอร์ต
+            </button>
+          </div>
+          <p class="mt-2 text-[11px] text-slate-500">ข้อมูลแยกตามรหัสพอร์ต ไม่ปนกันระหว่างกลุ่ม · รองรับสูงสุด <span id="max-symbols">10</span> หุ้น</p>
+
+          <div class="mt-4">
+            <span class="block text-xs font-medium text-slate-400 mb-2">สไตล์นักลงทุน</span>
+            <div class="grid grid-cols-2 gap-2 p-1 rounded-xl bg-ink-950/80 border border-slate-800">
+              <button data-persona="dividend" class="persona-btn rounded-lg px-2 py-2 text-xs font-medium transition">
+                สายปันผลปลอดภัย
+              </button>
+              <button data-persona="momentum" class="persona-btn rounded-lg px-2 py-2 text-xs font-medium transition">
+                สายเก็งกำไรสั้น
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl border border-slate-800 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-semibold text-slate-200">Watchlist</h2>
+            <span id="symbol-count" class="text-xs text-slate-500">0 หุ้น</span>
+          </div>
+
+          <div class="flex gap-2">
+            <input id="symbol-input" type="text" maxlength="15" spellcheck="false"
+              class="min-w-0 flex-1 rounded-xl bg-ink-950/80 border border-slate-700 px-3 py-2.5 text-sm uppercase placeholder-slate-500 focus:outline-none focus:border-emerald-400/70"
+              placeholder="พิมพ์รหัสหุ้น เช่น PTT.BK" />
+            <button id="btn-add" class="rounded-xl bg-emerald-500 px-3.5 py-2.5 text-sm font-semibold text-ink-950 hover:bg-emerald-400 transition">เพิ่ม</button>
+          </div>
+
+          <div class="mt-2.5 flex flex-wrap gap-1.5">
+            <button class="chip" data-symbol="PTT.BK">PTT.BK</button>
+            <button class="chip" data-symbol="ADVANC.BK">ADVANC.BK</button>
+            <button class="chip" data-symbol="NVDA">NVDA</button>
+            <button class="chip" data-symbol="AAPL">AAPL</button>
+          </div>
+
+          <ul id="watchlist" class="mt-4 space-y-2"></ul>
+
+          <div id="watchlist-empty" class="hidden mt-4 rounded-xl border border-dashed border-slate-700 p-4 text-center text-xs text-slate-500">
+            ยังไม่มีหุ้นในพอร์ตนี้ เพิ่มรหัสหุ้นด้านบนหรือกดปุ่มตัวอย่างลัด
+          </div>
+
+          <label class="mt-4 flex items-center gap-2 text-xs text-slate-400 select-none">
+            <input id="force-refresh" type="checkbox" class="h-4 w-4 rounded border-slate-600 bg-ink-950 text-emerald-500 focus:ring-0" />
+            บังคับดึงข้อมูลสด (ข้าม Smart Cache)
+          </label>
+
+          <div class="mt-4 grid gap-2">
+            <button id="btn-analyze" class="w-full rounded-xl bg-gradient-to-r from-emerald-400 to-sky-400 px-4 py-3 text-sm font-semibold text-ink-950 shadow-lg shadow-emerald-500/20 hover:brightness-110 disabled:opacity-60 transition flex items-center justify-center gap-2">
+              <span>วิเคราะห์พอร์ตด้วย AI</span>
+            </button>
+            <button id="btn-notify" class="w-full rounded-xl border border-slate-700 bg-slate-900/70 px-4 py-2.5 text-sm font-medium text-slate-200 hover:border-sky-400/60 hover:text-sky-300 disabled:opacity-60 transition">
+              ส่งรายงานเข้าอีเมล (SNS)
+            </button>
+          </div>
+        </div>
+
+        <div id="status-box" class="hidden glass rounded-2xl border border-slate-800 p-4 text-xs text-slate-300"></div>
+      </section>
+
+      <!-- Right: Dashboard -->
+      <section class="space-y-5 min-w-0">
+
+        <div id="summary-banner" class="hidden fade-in glass rounded-2xl border border-slate-800 p-5">
+          <div class="flex flex-wrap items-center gap-5 justify-between">
+            <div class="flex items-center gap-4">
+              <div class="score-ring" id="summary-ring" style="--ring:#34d399">
+                <div>
+                  <span id="summary-score" class="text-2xl font-bold">0</span>
+                  <span class="text-[10px] text-slate-500 -mt-1">/100</span>
+                </div>
+              </div>
+              <div>
+                <p class="text-xs uppercase tracking-widest text-slate-500">Portfolio Health</p>
+                <p class="text-lg font-semibold text-slate-100">สุขภาพพอร์ตโดยรวม</p>
+                <p id="summary-verdict" class="text-xs text-slate-400 mt-1 max-w-md"></p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-center">
+                <p class="text-[10px] uppercase tracking-wider text-emerald-300/80">Buy</p>
+                <p id="count-buy" class="text-lg font-bold text-emerald-300">0</p>
+              </div>
+              <div class="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center">
+                <p class="text-[10px] uppercase tracking-wider text-amber-300/80">Watch</p>
+                <p id="count-watch" class="text-lg font-bold text-amber-300">0</p>
+              </div>
+              <div class="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-center">
+                <p class="text-[10px] uppercase tracking-wider text-rose-300/80">Sell</p>
+                <p id="count-sell" class="text-lg font-bold text-rose-300">0</p>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4 pt-4 border-t border-slate-800 flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-400">
+            <span>ต้นทุน AI รอบล่าสุด: <strong id="summary-cost" class="text-emerald-300">0.0000</strong> บาท</span>
+            <span>จำนวนที่วิเคราะห์: <strong id="summary-count" class="text-slate-200">0</strong> ตัว</span>
+            <span id="summary-risk" class="text-slate-400"></span>
+            <span id="summary-top" class="text-slate-400"></span>
+          </div>
+        </div>
+
+        <div id="portfolio-rows" class="hidden fade-in overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40"></div>
+
+        <div id="results" class="space-y-4"></div>
+
+        <div id="results-empty" class="glass rounded-2xl border border-slate-800 p-10 text-center">
+          <div class="mx-auto h-12 w-12 rounded-2xl bg-slate-800/80 grid place-items-center text-slate-500 mb-4">📈</div>
+          <h3 class="text-sm font-semibold text-slate-200">ยังไม่มีผลวิเคราะห์</h3>
+          <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            เพิ่มหุ้นเข้าพอร์ตแล้วกด “วิเคราะห์พอร์ตด้วย AI” ระบบจะดึงราคา ข่าว คำนวณอินดิเคเตอร์
+            แล้วสร้างแผนเทรดภาษาไทยให้ทันที
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <footer class="mt-10 pb-6 text-center text-[11px] text-slate-600">
+      AI Equity Co-Pilot · CS446/IT332 Cloud Computing Projects · ข้อมูลนี้เป็นเครื่องมือช่วยวิเคราะห์ ไม่ใช่คำแนะนำการลงทุน
+    </footer>
+  </div>
+
+  <!-- Cost Calculator Modal -->
+  <div id="cost-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="mx-auto max-w-2xl my-8 rounded-2xl border border-slate-700 bg-ink-900 p-6 shadow-2xl fade-in">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h3 class="text-lg font-semibold">Business &amp; Cost Calculator</h3>
+          <p class="text-xs text-slate-400 mt-1">พิสูจน์ Unit Economics จาก token ที่ใช้จริง เทียบกับแผนขาย SaaS รายเดือน</p>
+        </div>
+        <button id="close-cost" class="rounded-lg border border-slate-700 px-2.5 py-1 text-sm text-slate-400 hover:text-slate-100">✕</button>
+      </div>
+
+      <div class="mt-5 grid sm:grid-cols-3 gap-3">
+        <div class="rounded-xl border border-slate-800 bg-ink-950/60 p-3">
+          <p class="text-[10px] uppercase tracking-wider text-slate-500">ต้นทุนรอบล่าสุด</p>
+          <p class="text-lg font-bold text-emerald-300"><span id="cost-last-thb">0.0000</span> <span class="text-xs font-normal text-slate-400">บาท</span></p>
+        </div>
+        <div class="rounded-xl border border-slate-800 bg-ink-950/60 p-3">
+          <p class="text-[10px] uppercase tracking-wider text-slate-500">ต่อหุ้น 1 ตัว</p>
+          <p class="text-lg font-bold text-sky-300"><span id="cost-per-symbol">0.0000</span> <span class="text-xs font-normal text-slate-400">บาท</span></p>
+        </div>
+        <div class="rounded-xl border border-slate-800 bg-ink-950/60 p-3">
+          <p class="text-[10px] uppercase tracking-wider text-slate-500">USD / รอบ</p>
+          <p class="text-lg font-bold text-slate-200">$<span id="cost-last-usd">0.000000</span></p>
+        </div>
+      </div>
+
+      <div class="mt-5 grid sm:grid-cols-2 gap-3 text-sm">
+        <label class="block">
+          <span class="text-xs text-slate-400">จำนวนลูกค้า (ราย)</span>
+          <input id="calc-customers" type="number" min="1" value="100" class="mt-1 w-full rounded-lg bg-ink-950/80 border border-slate-700 px-3 py-2" />
+        </label>
+        <label class="block">
+          <span class="text-xs text-slate-400">ราคาแพ็กเกจ / เดือน (บาท)</span>
+          <input id="calc-price" type="number" min="0" value="199" class="mt-1 w-full rounded-lg bg-ink-950/80 border border-slate-700 px-3 py-2" />
+        </label>
+        <label class="block">
+          <span class="text-xs text-slate-400">จำนวนหุ้นที่วิเคราะห์ / ลูกค้า / วัน</span>
+          <input id="calc-analyses" type="number" min="0" value="5" class="mt-1 w-full rounded-lg bg-ink-950/80 border border-slate-700 px-3 py-2" />
+        </label>
+        <label class="block">
+          <span class="text-xs text-slate-400">ต้นทุน AI ต่อหุ้น 1 ครั้ง (บาท)</span>
+          <input id="calc-unit-cost" type="number" min="0" step="0.0001" value="0.035" class="mt-1 w-full rounded-lg bg-ink-950/80 border border-slate-700 px-3 py-2" />
+        </label>
+        <label class="block">
+          <span class="text-xs text-slate-400">ค่า AWS คงที่ / เดือน (บาท)</span>
+          <input id="calc-fixed" type="number" min="0" value="50" class="mt-1 w-full rounded-lg bg-ink-950/80 border border-slate-700 px-3 py-2" />
+        </label>
+        <label class="block">
+          <span class="text-xs text-slate-400">จำนวนวันคิดเงิน</span>
+          <input id="calc-days" type="number" min="1" value="30" class="mt-1 w-full rounded-lg bg-ink-950/80 border border-slate-700 px-3 py-2" />
+        </label>
+      </div>
+
+      <div class="mt-5 rounded-xl border border-slate-800 bg-ink-950/60 p-4 grid sm:grid-cols-2 gap-3 text-sm">
+        <div class="flex justify-between"><span class="text-slate-400">รายได้รวม / เดือน</span><strong id="calc-revenue" class="text-slate-100">0 บาท</strong></div>
+        <div class="flex justify-between"><span class="text-slate-400">ต้นทุน AI + AWS</span><strong id="calc-cost" class="text-slate-100">0 บาท</strong></div>
+        <div class="flex justify-between"><span class="text-slate-400">กำไรขั้นต้น</span><strong id="calc-profit" class="text-emerald-300">0 บาท</strong></div>
+        <div class="flex justify-between"><span class="text-slate-400">Gross Margin</span><strong id="calc-margin" class="text-sky-300">0%</strong></div>
+        <div class="flex justify-between sm:col-span-2 pt-2 border-t border-slate-800"><span class="text-slate-400">จุดคุ้มทุน (จำนวนลูกค้า)</span><strong id="calc-breakeven" class="text-amber-300">—</strong></div>
+      </div>
+
+      <button id="use-last-cost" class="mt-4 w-full rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-xs font-medium text-emerald-300 hover:bg-emerald-500/20 transition">
+        ใช้ต้นทุนจริงจากรอบล่าสุดเป็นต้นทุนต่อหุ้น
+      </button>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden fixed bottom-5 right-5 z-[60] max-w-sm rounded-xl border px-4 py-3 text-sm shadow-xl"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var state = {
+    workspaceId: localStorage.getItem("copilot.workspace") || "DEMO-PORT",
+    persona: localStorage.getItem("copilot.persona") || "dividend",
+    symbols: [],
+    results: [],
+    summary: null,
+    loading: false,
+    lastCostThb: 0,
+    lastCostUsd: 0,
+    cachedAt: 0
+  };
+
+  var startedAt = 0;
+  var timerId = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function escapeHtml(value) {
+    return String(value === null || value === undefined ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  function fmt(value, digits) {
+    var d = digits === undefined ? 2 : digits;
+    if (value === null || value === undefined || isNaN(Number(value))) return "—";
+    return Number(value).toLocaleString("th-TH", { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+
+  function currencySymbol(code) { return code === "THB" ? "฿" : "$"; }
+
+  var RISK_META = {
+    LOW: { label: "เสี่ยงต่ำ", cls: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" },
+    MEDIUM: { label: "เสี่ยงปานกลาง", cls: "border-amber-500/40 bg-amber-500/10 text-amber-300" },
+    HIGH: { label: "เสี่ยงสูง", cls: "border-rose-500/40 bg-rose-500/10 text-rose-300" }
+  };
+
+  function riskBadge(ai) {
+    var meta = RISK_META[String(ai.risk_level || "MEDIUM").toUpperCase()] || RISK_META.MEDIUM;
+    var detail = (ai.risk_reasons && ai.risk_reasons.length) ? ai.risk_reasons.join(" | ") : "";
+    return '<span class="rounded-full border px-2 py-0.5 text-[10px] ' + meta.cls + '" title="' + escapeHtml(detail) + '">' + meta.label + '</span>';
+  }
+
+  function toneChip(tone) {
+    var value = String(tone || "").trim();
+    if (!value) return "";
+    var cls = value === "บวก"
+      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+      : value === "ลบ"
+        ? "border-rose-500/40 bg-rose-500/10 text-rose-300"
+        : "border-slate-600 bg-slate-800/60 text-slate-300";
+    return '<span class="rounded-full border px-2 py-0.5 text-[10px] ' + cls + '">ข่าว' + escapeHtml(value) + '</span>';
+  }
+
+  function timeAgo(timestamp) {
+    if (!timestamp) return "";
+    var minutes = Math.floor((Date.now() - timestamp) / 60000);
+    if (minutes < 1) return "เมื่อสักครู่";
+    if (minutes < 60) return minutes + " นาทีก่อน";
+    var hours = Math.floor(minutes / 60);
+    if (hours < 24) return hours + " ชั่วโมงก่อน";
+    return Math.floor(hours / 24) + " วันก่อน";
+  }
+
+  function cacheKey(workspaceId) { return "copilot.cache." + workspaceId; }
+
+  function saveSnapshot() {
+    try {
+      localStorage.setItem(cacheKey(state.workspaceId), JSON.stringify({
+        results: state.results,
+        summary: state.summary,
+        symbols: state.symbols,
+        persona: state.persona,
+        savedAt: Date.now()
+      }));
+    } catch (err) { /* localStorage เต็มหรือถูกปิด — ไม่ใช่เรื่องคอขดบาดตาย */ }
+  }
+
+  function restoreSnapshot(workspaceId) {
+    try {
+      var raw = localStorage.getItem(cacheKey(workspaceId));
+      if (!raw) return false;
+      var snapshot = JSON.parse(raw);
+      if (!snapshot || !Array.isArray(snapshot.results) || !snapshot.results.length) return false;
+      state.results = snapshot.results;
+      state.summary = snapshot.summary || null;
+      state.cachedAt = snapshot.savedAt || 0;
+      render();
+      renderStatus("แสดงผลลัพธ์ที่บันทึกไว้" + (state.cachedAt ? " " + timeAgo(state.cachedAt) : "") + " — กำลังอัปเดตจากเซิร์ฟเวอร์...");
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function toast(message, kind) {
+    var box = $("toast");
+    var palette = kind === "error"
+      ? "border-rose-500/50 bg-rose-950/95 text-rose-100"
+      : "border-emerald-500/50 bg-emerald-950/95 text-emerald-100";
+    box.className = "fixed bottom-5 right-5 z-[60] max-w-sm rounded-xl border px-4 py-3 text-sm shadow-xl " + palette;
+    box.textContent = message;
+    clearTimeout(box._hideTimer);
+    box._hideTimer = setTimeout(function () { box.classList.add("hidden"); }, 4200);
+  }
+
+  function setBusy(busy, label) {
+    state.loading = busy;
+    var analyzeBtn = $("btn-analyze");
+    var notifyBtn = $("btn-notify");
+    var addBtn = $("btn-add");
+    var loadBtn = $("btn-load");
+    [analyzeBtn, notifyBtn, addBtn, loadBtn].forEach(function (btn) { if (btn) btn.disabled = busy; });
+
+    if (busy) {
+      if (!state.results.length) renderSkeleton();
+      analyzeBtn.innerHTML = '<svg class="spinner h-4 w-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-opacity="0.25"/><path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg><span>' + escapeHtml(label || "กำลังประมวลผล...") + '</span>';
+      startedAt = Date.now();
+      timerId = setInterval(function () {
+        var seconds = Math.floor((Date.now() - startedAt) / 1000);
+        var span = analyzeBtn.querySelector("span");
+        if (span && state.loading) span.textContent = (label || "กำลังประมวลผล...") + " " + seconds + "s";
+      }, 1000);
+    } else {
+      clearInterval(timerId);
+      analyzeBtn.innerHTML = "<span>วิเคราะห์พอร์ตด้วย AI</span>";
+    }
+  }
+
+  async function request(path, options) {
+    var response = await fetch(path, Object.assign({
+      headers: { "Content-Type": "application/json" }
+    }, options || {}));
+    var data = {};
+    try { data = await response.json(); } catch (err) { data = {}; }
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.error || ("เรียก API ไม่สำเร็จ (HTTP " + response.status + ")"));
+    }
+    return data;
+  }
+
+  var api = {
+    get: function (id) { return request("/api/workspace/" + encodeURIComponent(id)); },
+    add: function (id, symbol, persona) {
+      return request("/api/workspace/" + encodeURIComponent(id) + "/stocks", {
+        method: "POST", body: JSON.stringify({ symbol: symbol, persona: persona })
+      });
+    },
+    remove: function (id, symbol) {
+      return request("/api/workspace/" + encodeURIComponent(id) + "/stocks/" + encodeURIComponent(symbol), { method: "DELETE" });
+    },
+    persona: function (id, persona) {
+      return request("/api/workspace/" + encodeURIComponent(id) + "/persona", {
+        method: "POST", body: JSON.stringify({ persona: persona })
+      });
+    },
+    analyze: function (id, persona, force) {
+      return request("/api/workspace/" + encodeURIComponent(id) + "/analyze", {
+        method: "POST", body: JSON.stringify({ persona: persona, force_refresh: force })
+      });
+    },
+    notify: function (id, persona) {
+      return request("/api/workspace/" + encodeURIComponent(id) + "/notify", {
+        method: "POST", body: JSON.stringify({ persona: persona })
+      });
+    }
+  };
+
+  // ---------------- Rendering ----------------
+  function personaLabel(persona) {
+    return persona === "momentum" ? "สายเก็งกำไรระยะสั้น" : "สายปันผลเน้นปลอดภัย";
+  }
+
+  function renderPersona() {
+    document.querySelectorAll(".persona-btn").forEach(function (btn) {
+      var active = btn.dataset.persona === state.persona;
+      btn.className = "persona-btn rounded-lg px-2 py-2 text-xs font-medium transition " +
+        (active ? "bg-emerald-500 text-ink-950 shadow" : "text-slate-400 hover:text-slate-200");
+    });
+  }
+
+  function renderWatchlist() {
+    var list = $("watchlist");
+    var empty = $("watchlist-empty");
+    $("symbol-count").textContent = state.symbols.length + " หุ้น";
+
+    if (!state.symbols.length) {
+      list.innerHTML = "";
+      empty.classList.remove("hidden");
+      return;
+    }
+    empty.classList.add("hidden");
+    list.innerHTML = state.symbols.map(function (symbol) {
+      return '<li class="fade-in flex items-center justify-between gap-2 rounded-xl border border-slate-800 bg-ink-950/70 px-3 py-2.5">' +
+        '<span class="flex items-center gap-2 min-w-0">' +
+          '<span class="h-2 w-2 rounded-full bg-sky-400 shrink-0"></span>' +
+          '<span class="text-sm font-medium tracking-wide truncate">' + escapeHtml(symbol) + '</span>' +
+        '</span>' +
+        '<button class="remove-symbol text-xs text-slate-500 hover:text-rose-400 transition px-1" data-symbol="' + escapeHtml(symbol) + '">ลบ</button>' +
+      '</li>';
+    }).join("");
+
+    list.querySelectorAll(".remove-symbol").forEach(function (btn) {
+      btn.addEventListener("click", function () { removeStock(btn.dataset.symbol); });
+    });
+  }
+
+  function signalStyle(signal) {
+    if (signal === "BUY") return { badge: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40", ring: "#34d399", text: "ซื้อ" };
+    if (signal === "SELL") return { badge: "bg-rose-500/15 text-rose-300 border-rose-500/40", ring: "#fb7185", text: "ขาย" };
+    return { badge: "bg-amber-500/15 text-amber-300 border-amber-500/40", ring: "#fbbf24", text: "เฝ้าดู" };
+  }
+
+  function sourceBadge(result) {
+    if (result.cache_hit) return '<span class="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[10px] text-sky-300">Smart Cache</span>';
+    if (result.source === "bedrock") return '<span class="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-300">Live Bedrock AI</span>';
+    return '<span class="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-300">Rule-based Fallback</span>';
+  }
+
+  function indicatorCell(label, value, hint) {
+    return '<div class="rounded-lg border border-slate-800 bg-ink-950/50 px-2.5 py-2">' +
+      '<p class="text-[10px] uppercase tracking-wider text-slate-500">' + escapeHtml(label) + '</p>' +
+      '<p class="text-sm font-semibold text-slate-200">' + escapeHtml(value) + '</p>' +
+      (hint ? '<p class="text-[10px] text-slate-500">' + escapeHtml(hint) + '</p>' : '') +
+    '</div>';
+  }
+
+  function listBlock(title, items, tone) {
+    var dot = tone === "good" ? "bg-emerald-400" : "bg-rose-400";
+    var body = (items && items.length ? items : ["—"]).map(function (item) {
+      return '<li class="flex gap-2 text-xs text-slate-300"><span class="mt-1.5 h-1.5 w-1.5 rounded-full ' + dot + ' shrink-0"></span><span>' + escapeHtml(item) + '</span></li>';
+    }).join("");
+    return '<div><p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">' + escapeHtml(title) + '</p><ul class="space-y-1.5">' + body + '</ul></div>';
+  }
+
+  function resultCard(result) {
+    if (result.error) {
+      return '<article class="fade-in rounded-2xl border border-rose-500/30 bg-rose-950/20 p-5">' +
+        '<div class="flex items-center justify-between gap-3">' +
+          '<p class="text-sm font-semibold text-rose-200">' + escapeHtml(result.symbol) + '</p>' +
+          '<span class="rounded-full border border-rose-500/40 bg-rose-500/10 px-2 py-0.5 text-[10px] text-rose-300">ไม่สำเร็จ</span>' +
+        '</div>' +
+        '<p class="mt-2 text-xs text-rose-200/80">' + escapeHtml(result.error) + '</p>' +
+      '</article>';
+    }
+
+    var ai = result.ai || {};
+    var indicators = result.indicators || {};
+    var plan = ai.action_plan || {};
+    var style = signalStyle(ai.signal);
+    var symbol = currencySymbol(result.currency);
+    var change = Number(indicators.change_pct);
+    var hasChange = isFinite(change);
+    var changeTone = hasChange && change < 0 ? "text-rose-400" : "text-emerald-400";
+    var signedChange = hasChange ? ((change >= 0 ? "+" : "") + fmt(change) + "%") : "—";
+
+    var newsHtml = (result.news || []).slice(0, 3).map(function (item) {
+      var title = escapeHtml(item.title);
+      var content = item.url
+        ? '<a href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener" class="hover:text-sky-300 transition">' + title + '</a>'
+        : title;
+      return '<li class="flex gap-2 text-[11px] text-slate-400"><span class="mt-1.5 h-1 w-1 rounded-full bg-slate-600 shrink-0"></span><span class="min-w-0">' + content +
+        '<span class="text-slate-600"> · ' + escapeHtml(item.source || "") + '</span></span></li>';
+    }).join("");
+
+    var checklist = (plan.checklist || []).map(function (item) {
+      return '<li class="flex gap-2 text-xs text-slate-300"><span class="text-emerald-400">✓</span><span>' + escapeHtml(item) + '</span></li>';
+    }).join("");
+
+    var costThb = (result.cost && result.cost.thb) || 0;
+
+    return '<article class="fade-in rounded-2xl border border-slate-800 bg-slate-900/55 glass p-5">' +
+      '<div class="flex flex-wrap items-start justify-between gap-3">' +
+        '<div class="min-w-0">' +
+          '<div class="flex items-center gap-2 flex-wrap">' +
+            '<h3 class="text-base font-semibold tracking-wide">' + escapeHtml(result.symbol) + '</h3>' +
+            '<span class="rounded-full border px-2 py-0.5 text-[10px] font-medium ' + style.badge + '">' + escapeHtml(ai.signal || "WATCH") + ' · ' + style.text + '</span>' +
+            sourceBadge(result) +
+            riskBadge(ai) +
+            toneChip(ai.news_tone) +
+          '</div>' +
+          '<p class="text-xs text-slate-400 mt-1 truncate max-w-md">' + escapeHtml(result.name || "") + '</p>' +
+        '</div>' +
+        '<div class="text-right">' +
+          '<p class="text-xl font-semibold">' + symbol + fmt(indicators.price) + '</p>' +
+          '<p class="text-xs font-medium ' + changeTone + '">' + signedChange + ' วันนี้</p>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">' +
+        indicatorCell("SMA20", fmt(indicators.sma20)) +
+        indicatorCell("SMA50", fmt(indicators.sma50)) +
+        indicatorCell("RSI14", fmt(indicators.rsi14, 1), indicators.volatility_20d_pct != null ? ("ผันผวน " + fmt(indicators.volatility_20d_pct, 1) + "%/วัน") : "") +
+        indicatorCell("Volume", fmt(indicators.volume_ratio, 1) + "x", "เทียบค่าเฉลี่ย 10 วัน") +
+        indicatorCell("Bias20", fmt(indicators.bias20_pct) + "%") +
+        indicatorCell("ห่าง 52W High", fmt(indicators.dist_high_52w_pct) + "%") +
+      '</div>' +
+
+      '<div class="mt-4 grid gap-4 md:grid-cols-[auto_minmax(0,1fr)] items-start">' +
+        '<div class="flex md:flex-col items-center gap-3">' +
+          '<div class="score-ring" style="--pct:' + Number(ai.score || 0) + ';--ring:' + style.ring + '">' +
+            '<div><span class="text-2xl font-bold">' + escapeHtml(ai.score || 0) + '</span><span class="text-[10px] text-slate-500 -mt-1">/100</span></div>' +
+          '</div>' +
+          '<p class="text-[10px] uppercase tracking-wider text-slate-500">AI Score</p>' +
+        '</div>' +
+        '<div>' +
+          '<p class="text-sm text-slate-200 leading-relaxed">' + escapeHtml(ai.trend_summary || "") + '</p>' +
+          '<div class="mt-3 grid sm:grid-cols-3 gap-2">' +
+            indicatorCell("จุดเข้าซื้อ", plan.entry_zone || "—") +
+            indicatorCell("ตัดขาดทุน", plan.stop_loss || "—") +
+            indicatorCell("ทำกำไร", plan.take_profit || "—") +
+          '</div>' +
+          '<ul class="mt-3 space-y-1.5">' + checklist + '</ul>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="mt-4 grid sm:grid-cols-2 gap-4 border-t border-slate-800 pt-4">' +
+        listBlock("ปัจจัยบวก (Catalysts)", ai.catalysts, "good") +
+        listBlock("ความเสี่ยง (Risks)", ai.risks, "bad") +
+      '</div>' +
+
+      (newsHtml ? '<div class="mt-4 border-t border-slate-800 pt-4"><p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">ข่าวล่าสุด</p><ul class="space-y-1.5">' + newsHtml + '</ul></div>' : "") +
+
+      '<div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-slate-500">' +
+        '<span>โหมด: ' + escapeHtml(personaLabel(ai.persona || state.persona)) + '</span>' +
+        '<span>ต้นทุน AI: ' + fmt(costThb, 4) + ' บาท</span>' +
+        '<span>Model: ' + escapeHtml(result.model_id || "—") + '</span>' +
+        (result.note ? '<span class="text-amber-400/80">' + escapeHtml(result.note) + '</span>' : "") +
+      '</div>' +
+    '</article>';
+  }
+
+  function renderCompact() {
+    var box = $("portfolio-rows");
+    var rows = state.results.filter(function (item) { return !item.error; });
+    if (!rows.length) {
+      box.classList.add("hidden");
+      box.innerHTML = "";
+      return;
+    }
+
+    box.classList.remove("hidden");
+    box.innerHTML = '<div class="flex items-center justify-between px-4 py-2.5 border-b border-slate-800">' +
+        '<p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">สรุปภาพรวมรายตัว</p>' +
+        '<p class="text-[10px] text-slate-600">' + rows.length + ' ตัว</p>' +
+      '</div>' +
+      '<div class="divide-y divide-slate-800/70">' +
+        rows.map(function (item) {
+          var ai = item.ai || {};
+          var indicators = item.indicators || {};
+          var style = signalStyle(ai.signal);
+          var change = Number(indicators.change_pct);
+          var hasChange = isFinite(change);
+          var changeCls = hasChange && change < 0 ? "text-rose-400" : "text-emerald-400";
+          var changeText = hasChange ? ((change >= 0 ? "+" : "") + fmt(change) + "%") : "—";
+          return '<div class="row flex items-center gap-3 px-4 py-2.5 transition">' +
+            '<span class="w-24 shrink-0 text-xs font-semibold tracking-wide">' + escapeHtml(item.symbol) + '</span>' +
+            '<span class="w-16 shrink-0 rounded-full border px-1.5 py-0.5 text-center text-[10px] ' + style.badge + '">' + escapeHtml(ai.signal || "WATCH") + '</span>' +
+            '<span class="w-14 shrink-0 text-right text-xs ' + changeCls + '">' + changeText + '</span>' +
+            '<span class="w-12 shrink-0 text-right text-xs text-slate-300">' + escapeHtml(ai.score || 0) + '</span>' +
+            '<span class="min-w-0 flex-1 truncate text-[11px] text-slate-500">' + escapeHtml(item.name || "") + '</span>' +
+            '<span class="hidden sm:block shrink-0">' + riskBadge(ai) + '</span>' +
+          '</div>';
+        }).join("") +
+      '</div>';
+  }
+
+  function renderSkeleton() {
+    $("results").innerHTML = [0, 1].map(function () {
+      return '<div class="rounded-2xl border border-slate-800 bg-slate-900/40 p-5">' +
+        '<div class="flex items-center justify-between">' +
+          '<div class="skeleton h-5 w-24 rounded"></div>' +
+          '<div class="skeleton h-6 w-20 rounded"></div>' +
+        '</div>' +
+        '<div class="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">' +
+          [0,1,2,3,4,5].map(function () { return '<div class="skeleton h-12 rounded-lg"></div>'; }).join("") +
+        '</div>' +
+        '<div class="mt-4 flex gap-4">' +
+          '<div class="skeleton h-24 w-24 rounded-full"></div>' +
+          '<div class="flex-1 space-y-2">' +
+            '<div class="skeleton h-4 w-3/4 rounded"></div>' +
+            '<div class="skeleton h-4 w-1/2 rounded"></div>' +
+            '<div class="skeleton h-10 w-full rounded-lg"></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join("");
+    $("results-empty").classList.add("hidden");
+  }
+
+  function renderResults() {
+    var container = $("results");
+    var empty = $("results-empty");
+    renderCompact();
+
+    if (!state.results.length) {
+      container.innerHTML = "";
+      empty.classList.remove("hidden");
+      return;
+    }
+    empty.classList.add("hidden");
+    container.innerHTML = state.results.map(resultCard).join("");
+  }
+
+  function renderSummary() {
+    var banner = $("summary-banner");
+    var summary = state.summary;
+
+    if (!summary || !summary.analyzed_count) {
+      banner.classList.add("hidden");
+      return;
+    }
+    banner.classList.remove("hidden");
+    $("summary-score").textContent = summary.avg_score;
+    $("summary-verdict").textContent = summary.verdict;
+    $("count-buy").textContent = summary.counts.BUY;
+    $("count-watch").textContent = summary.counts.WATCH;
+    $("count-sell").textContent = summary.counts.SELL;
+    $("summary-cost").textContent = fmt(summary.total_cost_thb, 4);
+    $("summary-count").textContent = summary.analyzed_count;
+
+    var risks = summary.risk_counts || {};
+    $("summary-risk").textContent = risks.HIGH
+      ? ("ความเสี่ยง: ต่ำ " + (risks.LOW || 0) + " · กลาง " + (risks.MEDIUM || 0) + " · สูง " + (risks.HIGH || 0))
+      : "";
+
+    var ring = $("summary-ring");
+    var color = summary.avg_score >= 65 ? "#34d399" : summary.avg_score >= 45 ? "#fbbf24" : "#fb7185";
+    ring.style.setProperty("--pct", summary.avg_score);
+    ring.style.setProperty("--ring", color);
+
+    var top = (summary.highlights || [])[0];
+    $("summary-top").textContent = top ? ("คะแนนสูงสุด: " + top.symbol + " (" + top.score + ")") : "";
+
+    state.lastCostThb = summary.total_cost_thb || 0;
+    state.lastCostUsd = summary.total_cost_usd || 0;
+  }
+
+  function renderStatus(message, tone) {
+    var box = $("status-box");
+    if (!message) { box.classList.add("hidden"); return; }
+    var color = tone === "error" ? "text-rose-300" : "text-emerald-300";
+    box.classList.remove("hidden");
+    box.innerHTML = '<p class="' + color + '">' + escapeHtml(message) + '</p>';
+  }
+
+  function render() {
+    $("workspace-input").value = state.workspaceId;
+    renderPersona();
+    renderWatchlist();
+    renderResults();
+    renderSummary();
+  }
+
+  // ---------------- Actions ----------------
+  async function loadWorkspace(options) {
+    var silent = options && options.silent;
+    var id = ($("workspace-input").value || "").trim().toUpperCase();
+    if (!id) { toast("กรุณาระบุ Workspace Code", "error"); return; }
+
+    state.workspaceId = id;
+    localStorage.setItem("copilot.workspace", id);
+
+    // แสดงผลที่เคยวิเคราะห์ไว้ทันที (perceived speed) แล้วค่อยอัปเดตจากเซิร์ฟเวอร์
+    var hasSnapshot = restoreSnapshot(id);
+    if (!silent && !hasSnapshot) setBusy(true, "กำลังโหลดพอร์ต...");
+
+    try {
+      var data = await api.get(id);
+      state.symbols = (data.workspace && data.workspace.symbols) || [];
+      state.persona = (data.workspace && data.workspace.persona) || state.persona;
+      localStorage.setItem("copilot.persona", state.persona);
+      state.results = data.analyses || [];
+      state.summary = data.summary || null;
+      if (data.max_symbols) $("max-symbols").textContent = data.max_symbols;
+      renderStatus(state.results.length ? "โหลดผลวิเคราะห์ล่าสุดจาก Smart Cache แล้ว" : "");
+      render();
+      if (state.results.length) saveSnapshot();
+    } catch (err) {
+      if (!state.results.length) renderStatus(err.message, "error");
+      toast(err.message, "error");
+    } finally {
+      if (!silent) setBusy(false);
+    }
+  }
+
+  async function addStock(symbol) {
+    var value = (symbol || $("symbol-input").value || "").trim().toUpperCase();
+    if (!value) { toast("พิมพ์รหัสหุ้นก่อนกดเพิ่ม", "error"); return; }
+    setBusy(true, "กำลังเพิ่มหุ้น...");
+    try {
+      var data = await api.add(state.workspaceId, value, state.persona);
+      state.symbols = data.workspace.symbols;
+      $("symbol-input").value = "";
+      renderStatus(data.message || "");
+      render();
+    } catch (err) {
+      toast(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeStock(symbol) {
+    setBusy(true, "กำลังลบหุ้น...");
+    try {
+      var data = await api.remove(state.workspaceId, symbol);
+      state.symbols = data.workspace.symbols;
+      state.results = state.results.filter(function (item) { return item.symbol !== symbol; });
+      state.summary = state.results.length ? state.summary : null;
+      render();
+      toast(data.message || "ลบหุ้นแล้ว");
+    } catch (err) {
+      toast(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function setPersona(persona) {
+    if (state.persona === persona) return;
+    state.persona = persona;
+    localStorage.setItem("copilot.persona", persona);
+    renderPersona();
+    try {
+      await api.persona(state.workspaceId, persona);
+      toast("เปลี่ยนโหมดเป็น " + personaLabel(persona));
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  }
+
+  async function analyze() {
+    if (!state.symbols.length) { toast("เพิ่มหุ้นเข้าพอร์ตก่อนวิเคราะห์", "error"); return; }
+    var force = $("force-refresh").checked;
+    setBusy(true, "AI กำลังวิเคราะห์พอร์ต...");
+    renderStatus("กำลังดึงราคา ข่าว และเรียก Amazon Bedrock แบบขนาน (อาจใช้เวลา 20–60 วินาที)");
+    try {
+      var data = await api.analyze(state.workspaceId, state.persona, force);
+      state.results = data.results || [];
+      state.summary = data.summary || null;
+      state.cachedAt = Date.now();
+      render();
+      if (state.results.length) saveSnapshot();
+      var failed = state.results.filter(function (item) { return item.error; }).length;
+      renderStatus("วิเคราะห์เสร็จ " + (state.results.length - failed) + " ตัว" + (failed ? (" · ล้มเหลว " + failed + " ตัว") : ""), failed ? "error" : "ok");
+      toast("วิเคราะห์พอร์ตเสร็จแล้ว");
+    } catch (err) {
+      renderStatus(err.message, "error");
+      toast(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function notifyEmail() {
+    if (!state.symbols.length) { toast("เพิ่มหุ้นเข้าพอร์ตก่อนส่งรายงาน", "error"); return; }
+    setBusy(true, "กำลังส่งอีเมล...");
+    try {
+      var data = await api.notify(state.workspaceId, state.persona);
+      toast(data.message || "ส่งอีเมลแล้ว");
+      renderStatus("Amazon SNS รับคำขอส่งอีเมลแล้ว (ตรวจกล่องจดหมายและยืนยัน subscription ครั้งแรก)");
+    } catch (err) {
+      toast(err.message, "error");
+      renderStatus(err.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // ---------------- Cost calculator ----------------
+  function recalc() {
+    var customers = Number($("calc-customers").value) || 0;
+    var price = Number($("calc-price").value) || 0;
+    var analyses = Number($("calc-analyses").value) || 0;
+    var unitCost = Number($("calc-unit-cost").value) || 0;
+    var fixed = Number($("calc-fixed").value) || 0;
+    var days = Number($("calc-days").value) || 30;
+
+    var revenue = customers * price;
+    var aiCost = customers * analyses * days * unitCost;
+    var totalCost = aiCost + fixed;
+    var profit = revenue - totalCost;
+    var margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+    var perCustomerCost = analyses * days * unitCost;
+    var perCustomerMargin = price - perCustomerCost;
+    var breakeven = perCustomerMargin > 0 ? Math.ceil(fixed / perCustomerMargin) : null;
+
+    $("calc-revenue").textContent = fmt(revenue, 0) + " บาท";
+    $("calc-cost").textContent = fmt(totalCost, 2) + " บาท";
+    $("calc-profit").textContent = fmt(profit, 2) + " บาท";
+    $("calc-profit").className = profit >= 0 ? "text-emerald-300" : "text-rose-300";
+    $("calc-margin").textContent = fmt(margin, 1) + "%";
+    $("calc-breakeven").textContent = breakeven === null ? "ยังไม่คุ้มทุนที่ราคานี้" : breakeven + " ราย";
+  }
+
+  function openCostModal() {
+    var count = (state.summary && state.summary.analyzed_count) || 0;
+    var perSymbolThb = count ? state.lastCostThb / count : 0;
+    $("cost-last-thb").textContent = fmt(state.lastCostThb, 4);
+    $("cost-last-usd").textContent = fmt(state.lastCostUsd, 6);
+    $("cost-per-symbol").textContent = fmt(perSymbolThb, 4);
+    $("cost-modal").classList.remove("hidden");
+    recalc();
+  }
+
+  // ---------------- Wiring ----------------
+  $("btn-load").addEventListener("click", function () { loadWorkspace(); });
+  $("workspace-input").addEventListener("keydown", function (event) { if (event.key === "Enter") loadWorkspace(); });
+  $("btn-add").addEventListener("click", function () { addStock(); });
+  $("symbol-input").addEventListener("keydown", function (event) { if (event.key === "Enter") addStock(); });
+  $("btn-analyze").addEventListener("click", analyze);
+  $("btn-notify").addEventListener("click", notifyEmail);
+
+  document.querySelectorAll(".persona-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () { setPersona(btn.dataset.persona); });
+  });
+  document.querySelectorAll(".chip").forEach(function (btn) {
+    btn.addEventListener("click", function () { addStock(btn.dataset.symbol); });
+  });
+
+  $("btn-cost").addEventListener("click", openCostModal);
+  $("close-cost").addEventListener("click", function () { $("cost-modal").classList.add("hidden"); });
+  $("cost-modal").addEventListener("click", function (event) {
+    if (event.target === $("cost-modal")) $("cost-modal").classList.add("hidden");
+  });
+  ["calc-customers", "calc-price", "calc-analyses", "calc-unit-cost", "calc-fixed", "calc-days"].forEach(function (id) {
+    $(id).addEventListener("input", recalc);
+  });
+  $("use-last-cost").addEventListener("click", function () {
+    var count = (state.summary && state.summary.analyzed_count) || 0;
+    if (!count) { toast("ยังไม่มีผลวิเคราะห์รอบล่าสุด", "error"); return; }
+    $("calc-unit-cost").value = (state.lastCostThb / count).toFixed(4);
+    recalc();
+    toast("ใช้ต้นทุนจริงจากรอบล่าสุดแล้ว");
+  });
+
+  render();
+  loadWorkspace({ silent: true });
+})();
+</script>
+</body>
+</html>

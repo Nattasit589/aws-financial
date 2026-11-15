@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >-
+  AI Equity Co-Pilot — เวอร์ชันสำหรับ AWS Academy Learner Lab (us-east-1 / us-west-2)
+  ใช้ IAM role ที่มีอยู่แล้วชื่อ LabRole แทนการสร้าง role ใหม่ เพราะ Learner Lab
+  ไม่อนุญาตให้สร้าง IAM role/policy/user
+
+Parameters:
+  AlertEmail:
+    Type: String
+    Default: ""
+    Description: อีเมลรับรายงานจาก SNS (เว้นว่างได้ถ้ายังไม่ต้องการอีเมล)
+    AllowedPattern: "^$|^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+    ConstraintDescription: ต้องเป็นอีเมลที่ถูกต้อง หรือเว้นว่าง
+
+  BedrockModelId:
+    Type: String
+    Default: amazon.nova-lite-v1:0
+    Description: Model ID บน Amazon Bedrock ที่บัญชีนี้เรียกได้
+
+  CacheTtlSeconds:
+    Type: Number
+    Default: 3600
+    MinValue: 60
+    MaxValue: 86400
+
+  # IAM role ที่ Learner Lab สร้างให้ล่วงหน้า ถ้าบัญชีของคุณใช้ชื่ออื่นให้แก้ค่านี้
+  LabRoleArn:
+    Type: String
+    Default: ""
+    Description: เว้นว่างเพื่อใช้ arn:aws:iam::<AccountId>:role/LabRole อัตโนมัติ
+
+Conditions:
+  HasAlertEmail: !Not [!Equals [!Ref AlertEmail, ""]]
+  HasCustomRole: !Not [!Equals [!Ref LabRoleArn, ""]]
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Handler: app.handler
+    Timeout: 120
+    MemorySize: 512
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        PYTHONUNBUFFERED: "1"
+
+Resources:
+  PortfolioTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: AI Equity Co-Pilot Alerts
+
+  AlertEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlertEmail
+    Properties:
+      TopicArn: !Ref AlertTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail
+
+  StockCopilotFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: python3.12
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-app"
+      Description: FastAPI dashboard + AI stock analyzer (AWS Academy Learner Lab)
+      CodeUri: src/
+      # ใช้ role ที่มีอยู่แล้ว ไม่สร้าง IAM ใหม่ (Learner Lab บล็อกการสร้าง role)
+      Role: !If
+        - HasCustomRole
+        - !Ref LabRoleArn
+        - !Sub "arn:aws:iam::${AWS::AccountId}:role/LabRole"
+      Environment:
+        Variables:
+          PORTFOLIO_TABLE: !Ref PortfolioTable
+          SNS_TOPIC_ARN: !Ref AlertTopic
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          CACHE_TTL_SECONDS: !Ref CacheTtlSeconds
+          USD_TO_THB: "36.0"
+          MAX_SYMBOLS: "10"
+      FunctionUrlConfig:
+        AuthType: NONE
+        Cors:
+          AllowOrigins:
+            - "*"
+          AllowMethods:
+            - "*"
+          AllowHeaders:
+            - "*"
+          MaxAge: "86400"
+      Events:
+        DailyMarketClose:
+          Type: Schedule
+          Properties:
+            Name: daily-market-close-analysis
+            Description: ปลุก Lambda วิเคราะห์ทุกพอร์ตอัตโนมัติ 17:15 น. เวลาไทย (10:15 UTC) จันทร์-ศุกร์
+            Schedule: cron(15 10 ? * MON-FRI *)
+            Enabled: true
+
+Outputs:
+  DashboardUrl:
+    Description: ลิงก์หน้าเว็บ Dashboard (Lambda Function URL)
+    Value: !GetAtt StockCopilotFunctionUrl.FunctionUrl
+
+  DynamoDBTableName:
+    Description: ชื่อตาราง DynamoDB ที่เก็บ Watchlist และ Cache
+    Value: !Ref PortfolioTable
+
+  SNSTopicArn:
+    Description: ARN ของ SNS Topic สำหรับแจ้งเตือนทางอีเมล
+    Value: !Ref AlertTopic
+
+  ExecutionRole:
+    Description: IAM role ที่ Lambda ใช้ (ต้องเป็น LabRole ใน Learner Lab)
+    Value: !If
+      - HasCustomRole
+      - !Ref LabRoleArn
+      - !Sub "arn:aws:iam::${AWS::AccountId}:role/LabRole"

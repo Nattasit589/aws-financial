@@ -1,0 +1,35 @@
+# ---- AWS SAM / CloudFormation ----
+.aws-sam/
+samconfig.toml
+packaged.yaml
+*.template
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Secrets / credentials (ห้าม commit) ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# ---- Logs ----
+*.log
+
+# ---- OS / editors ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp

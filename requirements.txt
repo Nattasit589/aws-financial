@@ -1,0 +1,2 @@
+# รายการไลบรารีหลักของโปรเจกต์ (ติดตั้งจริงตอน sam build จาก src/requirements.txt)
+-r src/requirements.txt
