@@ -108,7 +108,7 @@ Resources:
             - "*"
           AllowHeaders:
             - "*"
-          MaxAge: "86400"
+          MaxAge: 86400
       Events:
         DailyMarketClose:
           Type: Schedule
