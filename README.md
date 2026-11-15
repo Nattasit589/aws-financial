@@ -41,6 +41,7 @@
 - ⚡ **กลุ่มอื่นที่ต้องการ clone แล้วติดตั้งใน 3 คำสั่ง: [QUICKSTART.md](QUICKSTART.md)** (CloudShell, ไม่ต้องลงอะไรในเครื่อง)
 - 🎓 **AWS Academy Learner Lab (เส้นทางหลักของรายวิชา): [SETUP_LEARNER_LAB.md](SETUP_LEARNER_LAB.md)**
 - ☁️ บัญชี AWS ปกติ: [SETUP_GUIDE.md](SETUP_GUIDE.md)
+- 🖱️ **ทำมือทีละคลิกใน Console (ไม่ใช้ template): [MANUAL_CONSOLE_SETUP.md](MANUAL_CONSOLE_SETUP.md)**
 
 ---
 

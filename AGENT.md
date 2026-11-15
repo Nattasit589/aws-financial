@@ -35,6 +35,7 @@
 ├── QUICKSTART.md              # คู่มือย่อสำหรับกลุ่มอื่น (clone + CloudShell + 3 คำสั่ง)
 ├── SETUP_LEARNER_LAB.md       # คู่มือติดตั้งสำหรับ AWS Academy Learner Lab (เส้นทางหลัก)
 ├── SETUP_GUIDE.md             # คู่มือติดตั้งสำหรับบัญชี AWS ปกติ
+├── MANUAL_CONSOLE_SETUP.md    # คู่มือสร้างบริการเองทีละคลิกใน Console (ไม่ใช้ SAM)
 ├── template.yaml              # แม่แบบ AWS SAM สร้างครบทั้ง 5 บริการในคำสั่งเดียว
 ├── template.learner-lab.yaml  # แม่แบบสำหรับ AWS Academy Learner Lab (ใช้ LabRole ที่มีอยู่)
 ├── requirements.txt           # ชี้ไปที่ src/requirements.txt (ไฟล์จริงที่ SAM ใช้)
