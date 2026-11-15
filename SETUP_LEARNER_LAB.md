@@ -93,7 +93,7 @@ aws sts get-caller-identity
 
 ```bash
 pip install boto3
-python scripts/preflight.py
+python3 scripts/preflight.py
 ```
 
 สคริปต์จะตรวจแบบ read-only ทั้งหมด (ยกเว้นเรียก Bedrock 1 ครั้งด้วย `maxTokens=8` ต้นทุนแทบเป็นศูนย์) แล้วสรุปให้ว่าอะไรผ่าน/ไม่ผ่าน
@@ -140,13 +140,13 @@ python scripts/preflight.py
 **ลำดับที่ 1 — ลอง cross-region inference profile**
 
 ```bash
-python scripts/preflight.py --model us.amazon.nova-lite-v1:0
+python3 scripts/preflight.py --model us.amazon.nova-lite-v1:0
 ```
 
-ถ้าผ่าน ให้ deploy ด้วย:
+ถ้าผ่าน ให้ deploy ซ้ำด้วย template ที่ build แล้ว (ต้อง build ตามหัวข้อ 5 ก่อน):
 
 ```bash
-sam deploy --guided -t template.learner-lab.yaml \
+sam deploy --guided -t .aws-sam/build/template.yaml \
   --parameter-overrides BedrockModelId=us.amazon.nova-lite-v1:0
 ```
 
@@ -182,10 +182,12 @@ Built Resources:
 ## 6. Deploy
 
 ```bash
-sam deploy --guided -t template.learner-lab.yaml --config-env learnerlab
+sam deploy --guided -t .aws-sam/build/template.yaml --config-env learnerlab
 ```
 
-> `--config-env learnerlab` ทำให้ค่าเหล่านี้ถูกจำแยกจาก template อื่นใน `samconfig.toml` (ครั้งต่อไปสั่ง `sam deploy -t template.learner-lab.yaml --config-env learnerlab` ได้เลย)
+> **ทำไมต้องชี้ `.aws-sam/build/template.yaml`:** ไฟล์นี้คือ template ที่ผ่าน `sam build` แล้วจึงชี้ไปที่โค้ด+ไลบรารีที่ติดตั้งไว้ ถ้าใส่ `-t template.learner-lab.yaml` (ไฟล์ต้นฉบับ) SAM จะแพ็กแค่ `src/` โดยไม่มี `fastapi`/`pandas` → Lambda ขึ้น `ImportError` ตอนเรียกครั้งแรก
+
+> `--config-env learnerlab` ทำให้ค่าเหล่านี้ถูกจำแยกจาก template อื่นใน `samconfig.toml` (ครั้งต่อไปสั่ง `sam deploy -t .aws-sam/build/template.yaml --config-env learnerlab` ได้เลย)
 
 ตอบคำถามดังนี้:
 
@@ -300,7 +302,7 @@ aws logs tail /aws/lambda/ai-equity-copilot-app --follow
 
 ```bash
 sam build --use-container -t template.learner-lab.yaml
-sam deploy -t template.learner-lab.yaml --config-env learnerlab
+sam deploy -t .aws-sam/build/template.yaml --config-env learnerlab
 ```
 
 **ทุกครั้งที่กลับมาทำงานใหม่ (คนละ session):** credential เก่าหมดอายุแล้ว ให้ทำข้อ 2 ซ้ำ (Start Lab → AWS Details → `aws configure set aws_session_token ...`)
@@ -327,13 +329,13 @@ sam delete --stack-name ai-equity-copilot
 | อาการ | สาเหตุ | วิธีแก้ |
 |---|---|---|
 | `ExpiredToken` / `InvalidClientTokenId` | session 4 ชม. หมด | Start Lab → คัดลอก credential ใหม่ → `aws configure set aws_session_token ...` |
-| `not authorized to perform: iam:CreateRole` ตอน deploy | ตอบ `Y` ที่ Allow SAM CLI IAM role creation หรือใช้ `template.yaml` ผิดไฟล์ | ลบ stack ที่พัง (`sam delete`) แล้ว deploy ใหม่ด้วย `-t template.learner-lab.yaml` และตอบ `N` |
+| `not authorized to perform: iam:CreateRole` ตอน deploy | ตอบ `Y` ที่ Allow SAM CLI IAM role creation หรือใช้ `template.yaml` ผิดไฟล์ | ลบ stack ที่พัง (`sam delete`) แล้ว deploy ใหม่ด้วย `-t .aws-sam/build/template.yaml` (หลัง `sam build -t template.learner-lab.yaml`) และตอบ `N` |
 | `Cannot connect to the Docker daemon` | ยังไม่เปิด Docker Desktop | เปิด Docker แล้วรอจนขึ้น Running |
 | `ImportError: numpy` / `pandas` บน Lambda | build บน Windows โดยไม่ใช้ container | `sam build --use-container ...` ใหม่ |
 | `AccessDeniedException` ตอนเรียก Bedrock | LabRole ไม่มีสิทธิ์ หรือแล็บบล็อก | ทำหัวข้อ 4.2 (แอปยังใช้ได้ด้วย fallback) |
 | `ValidationException: ... on-demand throughput isn't supported` | ต้องใช้ inference profile | `--parameter-overrides BedrockModelId=us.amazon.nova-lite-v1:0` |
 | `ResourceNotFoundException` ตอนเรียก Bedrock | Model ID ไม่มีใน region นี้ | ใช้ `amazon.nova-lite-v1:0` หรือ `us.amazon.nova-lite-v1:0` และ region `us-east-1` |
-| `AccessDenied` ตอนสร้าง Function URL | แล็บบล็อก Lambda Function URL | แจ้งผู้ดูแลแล็บ พร้อมแนบผล `python scripts/preflight.py` |
+| `AccessDenied` ตอนสร้าง Function URL | แล็บบล็อก Lambda Function URL | แจ้งผู้ดูแลแล็บ พร้อมแนบผล `python3 scripts/preflight.py` |
 | ไม่ได้รับอีเมล | ยังไม่ Confirm subscription / ติด Spam | ทำหัวข้อ 7 ใหม่ |
 | `PendingConfirmation` | ยังไม่ยืนยันอีเมล | กดลิงก์ในอีเมล |
 | Deploy ค้างนานมาก | Docker โหลด image ครั้งแรก + pip ติดตั้ง pandas | รอ 5–10 นาที หรือเช็คเน็ต |
@@ -346,9 +348,9 @@ sam delete --stack-name ai-equity-copilot
 ## 13. Checklist ก่อนวันเดโม
 
 - [ ] Start Lab แล้ว `aws sts get-caller-identity` ผ่าน
-- [ ] `python scripts/preflight.py` ผ่านทุกบริการหลัก
+- [ ] `python3 scripts/preflight.py` ผ่านทุกบริการหลัก
 - [ ] `sam build --use-container -t template.learner-lab.yaml` ผ่าน
-- [ ] `sam deploy --guided -t template.learner-lab.yaml --config-env learnerlab` ผ่าน และจด `DashboardUrl` ไว้
+- [ ] `sam deploy --guided -t .aws-sam/build/template.yaml --config-env learnerlab` ผ่าน และจด `DashboardUrl` ไว้
 - [ ] ยืนยันอีเมล SNS แล้ว (หรือรู้วิธีสร้าง subscription ใหม่)
 - [ ] เพิ่ม `PTT.BK` + `NVDA` แล้วกดวิเคราะห์สำเร็จ (เห็นการ์ด + ต้นทุน AI)
 - [ ] กดส่งรายงานแล้วได้รับอีเมลจริง
@@ -370,7 +372,7 @@ sam delete --stack-name ai-equity-copilot
 >
 > โปรเจกต์: AI Equity Co-Pilot (ใช้ Lambda + DynamoDB + Bedrock + EventBridge + SNS ใน `us-east-1`)
 
-ผลตรวจสอบก่อนส่งคำขอ (แนบได้): `python scripts/preflight.py`
+ผลตรวจสอบก่อนส่งคำขอ (แนบได้): `python3 scripts/preflight.py`
 
 ---
 

@@ -85,7 +85,7 @@ aws sts get-caller-identity
 
 ```bash
 pip install boto3
-python scripts/preflight.py
+python3 scripts/preflight.py
 ```
 
 ถ้าได้ `AccessDeniedException` ให้ตรวจ:
@@ -283,7 +283,7 @@ sam delete --stack-name ai-equity-copilot
 | Lambda ขึ้น `ImportError: numpy` / `pandas` | build บน Windows โดยไม่ใช้ container | `sam build --use-container` ใหม่ |
 | Deploy error `Unable to upload artifact ... requirements.txt` | ไม่มี `src/requirements.txt` | ตรวจว่าไฟล์อยู่จริงใน `src/` |
 | หน้าเว็บ `{"detail":"Not Found"}` | เปิด URL ไม่ครบ | ใช้ `DashboardUrl` จาก Output ตรงๆ |
-| การ์ดขึ้น `Rule-based Fallback` | Bedrock เรียกไม่สำเร็จ | ดูหมายเหตุสีเหลืองบนการ์ด + รัน `python scripts/preflight.py` |
+| การ์ดขึ้น `Rule-based Fallback` | Bedrock เรียกไม่สำเร็จ | ดูหมายเหตุสีเหลืองบนการ์ด + รัน `python3 scripts/preflight.py` |
 | `AccessDeniedException: bedrock:InvokeModel` | ไม่มีสิทธิ์/ยังไม่เปิดโมเดล | ทำข้อ 3 |
 | `ResourceNotFoundException` ตอนเรียก Bedrock | Model ID ไม่มีใน region | เปลี่ยน `BedrockModelId` หรือเปลี่ยน region เป็น `us-east-1` |
 | `ValidationException: on-demand throughput isn't supported` | ต้องใช้ inference profile | deploy ด้วย `--parameter-overrides BedrockModelId=us.amazon.nova-lite-v1:0` |
@@ -297,7 +297,7 @@ sam delete --stack-name ai-equity-copilot
 ## 13. Checklist ก่อนวันเดโม
 
 - [ ] `aws sts get-caller-identity` ทำงาน
-- [ ] `python scripts/preflight.py` ผ่านทุกบริการหลัก
+- [ ] `python3 scripts/preflight.py` ผ่านทุกบริการหลัก
 - [ ] `sam build --use-container` ผ่าน
 - [ ] `sam deploy --guided` ผ่าน และได้ `DashboardUrl`
 - [ ] ยืนยันอีเมล SNS แล้ว

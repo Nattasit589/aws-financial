@@ -35,7 +35,7 @@
 
 โปรเจกต์นี้รันได้ทั้งบนบัญชี AWS ปกติและบน **AWS Academy Learner Lab** (region `us-east-1` / `us-west-2`) โดยใช้ `template.learner-lab.yaml` แทน `template.yaml` เพราะ Learner Lab **ไม่อนุญาตให้สร้าง IAM role** จึงต้องผูก role ที่มีอยู่แล้วชื่อ `LabRole` แทน
 
-ก่อน deploy ให้รัน `python scripts/preflight.py` เพื่อตรวจว่าบริการที่ต้องใช้ (CloudFormation, Lambda, DynamoDB, SNS, EventBridge, Bedrock) เปิดใช้งานได้จริงในบัญชีของคุณ
+ก่อน deploy ให้รัน `python3 scripts/preflight.py` เพื่อตรวจว่าบริการที่ต้องใช้ (CloudFormation, Lambda, DynamoDB, SNS, EventBridge, Bedrock) เปิดใช้งานได้จริงในบัญชีของคุณ
 
 **คู่มือแยกตามประเภทบัญชี:**
 - ⚡ **กลุ่มอื่นที่ต้องการ clone แล้วติดตั้งใน 3 คำสั่ง: [QUICKSTART.md](QUICKSTART.md)** (CloudShell, ไม่ต้องลงอะไรในเครื่อง)
@@ -63,7 +63,7 @@
 ในบัญชี AWS ปกติ โมเดลส่วนใหญ่เปิดใช้ได้ทันทีเมื่อเรียกครั้งแรก (ไม่ต้องกดขอสิทธิ์ที่หน้า Model access แบบเดิมแล้ว) แต่ถ้าเรียกแล้วได้ `AccessDeniedException` ให้ตรวจตามลำดับนี้:
 1. เข้า **AWS Console** → เลือก Region `us-east-1`
 2. เปิด **Amazon Bedrock** → ทดสอบใน **Playground** ด้วยโมเดล `amazon.nova-lite-v1:0`
-3. ถ้าเรียกผ่าน CLI ให้รัน `python scripts/preflight.py` (สคริปต์จะทดสอบเรียกโมเดลจริง 1 ครั้งและบอกผลชัดเจน)
+3. ถ้าเรียกผ่าน CLI ให้รัน `python3 scripts/preflight.py` (สคริปต์จะทดสอบเรียกโมเดลจริง 1 ครั้งและบอกผลชัดเจน)
 4. ถ้าใช้ **Learner Lab** แล้ว Bedrock ถูกบล็อก: แอปยังใช้งานได้ครบ แต่ผลวิเคราะห์จะมาจาก rule-based fallback (ป้ายบนการ์ดจะระบุ) — ควรแจ้งอาจารย์หรือผู้ดูแลแล็บ
 
 ### ขั้นตอนที่ 2: ติดตั้งระบบทั้งหมดด้วยคำสั่งเดียว (AWS SAM Deploy)
@@ -83,8 +83,10 @@ sam deploy --guided
 >
 > ```bash
 > sam build --use-container -t template.learner-lab.yaml
-> sam deploy --guided -t template.learner-lab.yaml
+> sam deploy --guided -t .aws-sam/build/template.yaml
 > ```
+>
+> **สำคัญ:** ตอน `sam deploy` ต้องใช้ `-t .aws-sam/build/template.yaml` (template ที่ผ่านการ build) เท่านั้น ถ้าใส่ `-t template.learner-lab.yaml` SAM จะแพ็กเฉพาะ `src/` โดยไม่มีไลบรารี → Lambda ขึ้น `ImportError: fastapi`
 
 ในขั้นตอน `sam deploy --guided` ให้กรอกค่าดังนี้:
 - **Stack Name:** `ai-equity-copilot`
