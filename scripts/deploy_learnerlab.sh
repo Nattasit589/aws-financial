@@ -151,7 +151,7 @@ ok "build เสร็จ"
 # ---------------------------------------------------------------- deploy
 info "sam deploy → stack: $STACK_NAME"
 sam deploy \
-  --template-file "$TEMPLATE" \
+  --template-file .aws-sam/build/template.yaml \
   --stack-name "$STACK_NAME" \
   --region "$REGION" \
   --resolve-s3 \
