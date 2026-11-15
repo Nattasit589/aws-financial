@@ -303,7 +303,7 @@ TOPIC_ARN=$(aws sns list-topics --region us-east-1 \
 if [ -n "$TOPIC_ARN" ]; then
   aws sns list-subscriptions-by-topic --topic-arn "$TOPIC_ARN" --region us-east-1 \
     --query "Subscriptions[].SubscriptionArn" --output text | tr '\t' '\n' | while read -r s; do
-      [ "\$s" != "PendingConfirmation" ] && [ -n "\$s" ] && aws sns unsubscribe --subscription-arn "$s"
+      [ "$s" != "PendingConfirmation" ] && [ -n "\$s" ] && aws sns unsubscribe --subscription-arn "$s"
     done
   aws sns delete-topic --topic-arn "$TOPIC_ARN" --region us-east-1
 fi
