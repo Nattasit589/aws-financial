@@ -529,7 +529,7 @@
     return '<div><p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">' + escapeHtml(title) + '</p><ul class="space-y-1.5">' + body + '</ul></div>';
   }
 
-  // กราฝเส้นจิ๋ว 30 วัน จากราคาปิดที่ backend คำนวณ indicator อยู่แล้ว
+  // กราฟเส้นจิ๋ว 30 วัน จากราคาปิดที่ backend คำนวณ indicator อยู่แล้ว
   function sparkline(series) {
     var values = (series || []).filter(function (value) { return typeof value === "number" && isFinite(value); });
     if (values.length < 2) return "";

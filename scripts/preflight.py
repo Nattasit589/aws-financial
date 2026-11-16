@@ -169,16 +169,19 @@ def main() -> int:
         print("ดูคู่มือใน SETUP_GUIDE.md หัวข้อ 'AWS Academy Learner Lab'")
         return 1
 
-    print("ผลลัพธ์: ✅ พร้อม deploy (ผ่านทุกบริการหลัก)")
-    print("         5 บริการหลัก: Lambda ✅  DynamoDB ✅  EventBridge ✅  SNS ✅")
+    print("ผลลัพธ์: ✅ พร้อม deploy (ผ่านทุกบริการที่ต้องสร้าง)")
+    print("         Lambda ✅  DynamoDB ✅  EventBridge ✅  SNS ✅")
     if bedrock_ok:
-        print("         Bedrock ✅ — ได้ผลวิเคราะห์จาก AI จริง (Level 4 เต็มรูปแบบ)")
+        print("         Bedrock ✅ — ได้ผลวิเคราะห์จาก AI จริง (5 บริการครบ, Level 4 เต็มรูปแบบ)")
     else:
-        print("         Bedrock ❌ — แอปยังทำงานได้ด้วย rule-based fallback")
-        print("         แต่ควรแจ้งอาจารย์/ผู้ดูแลแล็บเพื่อขอเปิดสิทธิ์ Bedrock")
+        print("         Bedrock ❌ — ยัง deploy ได้ (4 บริการที่ทำงานจริงตามเกณฑ์)")
+        print("         ถ้าตั้ง Gemini API key ระบบจะใช้ AI สำรองก่อน แล้วจึงตกไป rule-based")
+        print("         คำสั่งที่ใช้ต่อได้: bash scripts/deploy_learnerlab.sh --skip-preflight --gemini-key <key>")
     print("=" * 78)
-    print("\nขั้นต่อไป:")
-    print("  sam build --use-container -t template.learner-lab.yaml")
+    print("\nขั้นต่อไป (ทางลัดที่สคริปต์ทำให้ทั้งหมด):")
+    print("  bash scripts/deploy_learnerlab.sh")
+    print("หรือทำเองด้วย SAM CLI:")
+    print("  sam build -t template.learner-lab.yaml")
     print("  sam deploy --guided -t template.learner-lab.yaml")
     print("  (ตอบ 'N' เมื่อถูกถามว่า Allow SAM CLI IAM role creation)")
     return 0
