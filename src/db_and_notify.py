@@ -215,6 +215,32 @@ def send_email(subject: str, message: str) -> str:
 RISK_LABELS = {"LOW": "ต่ำ", "MEDIUM": "ปานกลาง", "HIGH": "สูง"}
 
 
+def _headline(item: dict, limit: int = 110) -> str:
+    """จัดบรรทัดหัวข้อข่าว 1 บรรทัด (ตัดยาวเกินไปเพื่อให้อ่านง่ายในอีเมล)"""
+    title = str((item or {}).get("title") or "").strip()
+    if not title:
+        return ""
+    if len(title) > limit:
+        title = title[: limit - 3].rstrip() + "..."
+    source = str(item.get("source") or item.get("origin") or "").strip()
+    return f"{title} ({source})" if source else title
+
+
+def _news_lines(result: dict, limit: int = 3) -> list[str]:
+    """อารมณ์ข่าว + หัวข้อข่าวล่าสุด ต่อท้ายรายละเอียดของหุ้นแต่ละตัว"""
+    ai = result.get("ai") or {}
+    tone = str(ai.get("news_tone") or "").strip() or "-"
+    news = result.get("news") or []
+    lines = [f"  อารมณ์ข่าว: {tone}"]
+    titles = [line for line in (_headline(item) for item in news[:limit]) if line]
+    if titles:
+        lines.append("  ข่าวล่าสุด:")
+        lines.extend(f"    - {line}" for line in titles)
+    else:
+        lines.append("  ข่าวล่าสุด: ไม่พบข่าวในรอบนี้")
+    return lines
+
+
 def build_report_email(workspace_id: str, persona: str, results: list[dict], summary: dict) -> tuple[str, str]:
     persona_label = "สายปันผลเน้นปลอดภัย" if persona == "dividend" else "สายเก็งกำไรระยะสั้น"
     subject = f"[AI Equity Co-Pilot] Portfolio report: {workspace_id}"
@@ -254,6 +280,8 @@ def build_report_email(workspace_id: str, persona: str, results: list[dict], sum
 
     for result in results:
         ai = result.get("ai") or {}
+        if result.get("error") or not ai:
+            continue  # หุ้นที่ดึงข้อมูลไม่สำเร็จถูกข้ามไปแล้วในสรุปเร็ว
         indicators = result.get("indicators") or {}
         lines.extend(
             [
@@ -267,9 +295,10 @@ def build_report_email(workspace_id: str, persona: str, results: list[dict], sum
                 f"ตัดขาดทุน: {ai.get('action_plan', {}).get('stop_loss', '-')} | "
                 f"ทำกำไร: {ai.get('action_plan', {}).get('take_profit', '-')}",
                 f"  ความเสี่ยง: {'; '.join(ai.get('risks', []))}",
-                "",
             ]
         )
+        lines.extend(_news_lines(result))
+        lines.append("")
 
     lines.append("ข้อมูลนี้เป็นเครื่องมือช่วยวิเคราะห์ ไม่ใช่คำแนะนำการลงทุน")
     return subject, "\n".join(lines)
