@@ -121,17 +121,17 @@ def main() -> int:
     check("EventBridge / Events", lambda: session.client("events").list_rules(Limit=1))
     check("CloudWatch Logs", lambda: session.client("logs").describe_log_groups(limit=1))
 
-    # 4) Lambda Function URL (API ที่ SAM จะสร้าง) — ทดสอบสิทธิ์ด้วยชื่อฟังก์ชันที่ไม่มีอยู่
+    # 4) Lambda Function URL (API ที่ SAM จะสร้าง) — ทดสอบ API อ่านด้วยชื่อฟังก์ชันที่ไม่มีอยู่
     url_check = check(
-        "Lambda Function URL (สิทธิ์)",
+        "Lambda Function URL (สิทธิ์อ่าน)",
         lambda: session.client("lambda").get_function_url_config(FunctionName="__preflight_not_exist__"),
     )
     if url_check is None:
-        # ถ้า FAIL เพราะ ResourceNotFound แปลว่าสิทธิ์ผ่าน ให้แก้ข้อความให้ถูกต้อง
+        # ถ้า FAIL เพราะ ResourceNotFound แปลว่า API อ่านตอบกลับ ไม่ได้ยืนยันสิทธิ์สร้าง/จัดการ
         for index, (name, status, detail) in enumerate(results):
             if name.startswith("Lambda Function URL") and status == FAIL and "ResourceNotFound" in detail:
-                results[index] = (name, PASS, "ok (อนุญาตให้จัดการ Function URL)")
-                print("   ↳ สิทธิ์ผ่าน (ได้ ResourceNotFound ซึ่งคาดไว้เพราะยังไม่มีฟังก์ชัน)")
+                results[index] = (name, PASS, "ok (API อ่าน Function URL ตอบกลับ; ยังไม่ยืนยันสิทธิ์สร้าง/จัดการ)")
+                print("   ↳ API อ่านตอบกลับ ResourceNotFound ตามคาด — ยังไม่ยืนยันสิทธิ์สร้าง/จัดการ Function URL")
                 break
 
     # 5) Bedrock — ตัวชี้ขาดว่าโหมด AI จะทำงานเต็มหรือถอยไปใช้ rule-based
@@ -157,7 +157,10 @@ def main() -> int:
     failed = [item for item in results if item[1] == FAIL]
     core_failed = [
         item for item in failed
-        if item[0].startswith(("CloudFormation", "Lambda", "DynamoDB", "SNS", "EventBridge", "S3"))
+        if item[0].startswith((
+            "IAM role", "Role ยอมให้ Lambda สวมสิทธิ์",
+            "CloudFormation", "Lambda", "DynamoDB", "SNS", "EventBridge", "S3",
+        ))
     ]
     bedrock_ok = any(item[0].startswith("Bedrock") and item[1] == PASS for item in results)
 
@@ -169,20 +172,21 @@ def main() -> int:
         print("ดูคู่มือใน SETUP_GUIDE.md หัวข้อ 'AWS Academy Learner Lab'")
         return 1
 
-    print("ผลลัพธ์: ✅ พร้อม deploy (ผ่านทุกบริการที่ต้องสร้าง)")
-    print("         Lambda ✅  DynamoDB ✅  EventBridge ✅  SNS ✅")
+    print("ผลลัพธ์: ผ่านการตรวจเบื้องต้นที่จำเป็นก่อน deploy")
+    print("         ผลตรวจ list/get ไม่รับประกันสิทธิ์สร้าง/เขียนทรัพยากร")
+    print("         ยังไม่ได้ยืนยันสิทธิ์ที่ Lambda ใช้ขณะทำงานจริง")
     if bedrock_ok:
-        print("         Bedrock ✅ — ได้ผลวิเคราะห์จาก AI จริง (5 บริการครบ, Level 4 เต็มรูปแบบ)")
+        print("         Bedrock — เรียกโมเดลด้วย credential ปัจจุบันได้ (ยังไม่ยืนยันสิทธิ์ของ Lambda)")
     else:
-        print("         Bedrock ❌ — ยัง deploy ได้ (4 บริการที่ทำงานจริงตามเกณฑ์)")
+        print("         Bedrock — เรียกโมเดลไม่ได้ แต่ไม่เป็นเงื่อนไขบล็อกการตรวจเบื้องต้น")
         print("         ถ้าตั้ง Gemini API key ระบบจะใช้ AI สำรองก่อน แล้วจึงตกไป rule-based")
-        print("         คำสั่งที่ใช้ต่อได้: bash scripts/deploy_learnerlab.sh --skip-preflight --gemini-key <key>")
+        print("         คำสั่งที่ใช้ต่อได้: bash scripts/deploy_learnerlab.sh --gemini-key <key>")
     print("=" * 78)
     print("\nขั้นต่อไป (ทางลัดที่สคริปต์ทำให้ทั้งหมด):")
     print("  bash scripts/deploy_learnerlab.sh")
     print("หรือทำเองด้วย SAM CLI:")
     print("  sam build -t template.learner-lab.yaml")
-    print("  sam deploy --guided -t template.learner-lab.yaml")
+    print("  sam deploy --guided -t .aws-sam/build/template.yaml")
     print("  (ตอบ 'N' เมื่อถูกถามว่า Allow SAM CLI IAM role creation)")
     return 0
 

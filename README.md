@@ -1,24 +1,9 @@
 # AI Equity Co-Pilot (Ultra-Lean AWS Serverless Edition)
 
-แพลตฟอร์มผู้ช่วยวิเคราะห์หุ้นไทย (.BK) และหุ้นสหรัฐฯ อัตโนมัติด้วย Generative AI บนสถาปัตยกรรม **AWS Serverless 5 บริการหลัก** เปลี่ยนรายชื่อหุ้นในพอร์ตให้เป็น **AI Decision Dashboard** ภาษาไทยที่ปรับตามสไตล์นักลงทุน พร้อมกราฟราคา 30 วัน ความเสี่ยงพอร์ต และแจ้งเตือนทางอีเมลอัตโนมัติทุกวันจันทร์–ศุกร์ 17:15 น.
+แพลตฟอร์มผู้ช่วยวิเคราะห์หุ้นไทย (.BK) และหุ้นสหรัฐฯ อัตโนมัติด้วย Generative AI บนสถาปัตยกรรม **AWS Serverless 5 บริการหลัก** เปลี่ยนรายชื่อหุ้นในพอร์ตให้เป็น **AI Decision Dashboard** ภาษาไทยที่ปรับตามสไตล์นักลงทุน พร้อมคำนวณความเสี่ยงพอร์ตและแจ้งเตือนทางอีเมลอัตโนมัติ
 
 > **รายวิชา:** CS446 / IT332 Cloud Computing Projects (มหาวิทยาลัยกรุงเทพ)
 > **ทีมผู้พัฒนา:** [ระบุชื่อกลุ่มและรายชื่อสมาชิก 3-5 คน]
-
----
-
-## ลิงก์สำหรับส่งงาน (Submission Links)
-
-| # | รายการที่ต้องส่ง | ลิงก์ |
-|---|---|---|
-| 1 | **Source Code (Public Repository)** | `https://github.com/Nattasit589/aws-financial` |
-| 2 | **Step-by-Step Documentation** | `https://github.com/Nattasit589/aws-financial/blob/main/QUICKSTART.md` |
-| 3 | **AWS Architecture Diagram** | `https://github.com/Nattasit589/aws-financial/blob/main/architecture-diagram.png` |
-| 4 | **Video / Vlog Implementation** | ⬜ *รอใส่ลิงก์วิดีโอ (YouTube / Google Drive แบบเปิดสาธารณะ)* |
-
-> ทุกลิงก์เป็นการเปิดจาก repo **public** นี้โดยตรง ไม่ต้องล็อกอิน และไม่ต้องดาวน์โหลดไฟล์
->
-> **คู่มือฉบับอื่น (สำหรับกลุ่มที่ใช้บัญชีต่างกัน):** [QUICKSTART.md](QUICKSTART.md) ฉบับย่อ 3 คำสั่งบน CloudShell · [SETUP_LEARNER_LAB.md](SETUP_LEARNER_LAB.md) ฉบับละเอียดสำหรับ AWS Academy Learner Lab · [SETUP_GUIDE.md](SETUP_GUIDE.md) บัญชี AWS ปกติ · [MANUAL_CONSOLE_SETUP.md](MANUAL_CONSOLE_SETUP.md) ทำมือทีละคลิกใน Console
 
 ---
 
@@ -28,41 +13,34 @@
 - **แยกพอร์ตหลายผู้ใช้งาน (Multi-Workspace):** รองรับการสร้างและสลับพอร์ตแยกตามรหัสพอร์ต (Workspace Code) โดยข้อมูลไม่ปนกัน
 - **ปรับคำแนะนำตามสไตล์นักลงทุน (Investor Persona):** เลือกโหมดวิเคราะห์ได้ทั้ง **สายปันผลเน้นปลอดภัย (Conservative Dividend)** และ **สายเก็งกำไรระยะสั้น (Short-Term Momentum)**
 - **สรุปภาพรวมรายตัวแบบ Decision Dashboard:** ตารางย่อ (สัญญาณ · คะแนน · เปลี่ยนแปลง · ระดับความเสี่ยง) ช่วยให้ตัดสินใจได้ในหน้าเดียว พร้อมป้ายความเสี่ยงต่ำ/กลาง/สูง และอารมณ์ข่าว (บวก/กลาง/ลบ)
-- **กราฟราคา 30 วัน (Sparkline) ในการ์ดทุกหุ้น:** วาดด้วย SVG จากประวัติราคาที่ระบบดึงมาคำนวณ SMA/RSI อยู่แล้ว — ไม่มี request เพิ่ม และสีเส้นเปลี่ยนตามทิศทางราคา
-- **เห็นระบบอัตโนมัติจากหน้าเว็บ:** แถบหัวเว็บนับถอยหลังถึงรอบ EventBridge ถัดไป (17:15 น. เวลาทำการ) และป้ายบอกว่าผลล่าสุดมาจาก AI ชั้นไหน (Bedrock / Gemini / กฎเทคนิค)
 - **ศักยภาพเชิงพาณิชย์ (Unit Economics):** ต้นทุนประมวลผลจริงบน AWS (Lambda + DynamoDB + Bedrock) เฉลี่ยต่ำกว่า **0.10 บาทต่อการวิเคราะห์หุ้น 1 ตัว** สามารถต่อยอดเป็นบริการ SaaS รายเดือน (เช่น 199 บาท/เดือน) โดยมีอัตรากำไรขั้นต้นสูงกว่า 85%
 
 ---
 
 ## สถาปัตยกรรมระบบบน AWS (5 Core AWS Services)
 
-โปรเจกต์นี้ออกแบบแบบ **Zero External API Key Required** — ใช้ **Amazon Bedrock** เป็น AI หลักในบัญชี AWS ของตัวเอง ไม่ต้องสมัครคีย์บริการภายนอกเพิ่ม (มี **Google Gemini** เป็น AI สำรองแบบไม่บังคับ สำหรับแล็บที่ Bedrock ถูกบล็อกสิทธิ์) และใช้บริการหลักของ AWS จำนวน **5 บริการ** (ไม่นับรวมบริการจัดการพื้นฐานสีม่วงอย่าง IAM, VPC, CloudWatch, CLI และ Cost & Usage Report):
+โปรเจกต์นี้ออกแบบแบบ **Zero External API Keys** (ไม่ต้องสมัครคีย์เว็บนอก) และใช้บริการหลักของ AWS จำนวน **5 บริการ** (ไม่นับรวมบริการจัดการพื้นฐานสีม่วงอย่าง IAM, VPC, CloudWatch, CLI และ Cost & Usage Report):
 
 | ลำดับ | บริการ AWS | หน้าที่หลักในระบบ |
 |---|---|---|
 | 1 | **AWS Lambda (Function URL)** | รันระบบหลังบ้าน FastAPI เสิร์ฟหน้าเว็บ Dashboard และประมวลผลหุ้นแบบขนาน (Parallel) |
 | 2 | **Amazon DynamoDB** | จัดเก็บรายชื่อหุ้นแยกตามพอร์ต (CRUD), ประวัติผลวิเคราะห์ และระบบ Smart Cache (TTL) |
 | 3 | **Amazon Bedrock** | ประมวลผลตัวเลขเทคนิคและข่าวสารด้วยโมเดล AI เพื่อสร้างแผนเทรดภาษาไทย |
-| 4 | **Amazon EventBridge** | ตั้งเวลาปลุก AWS Lambda มาวิเคราะห์หุ้นทุกพอร์ตอัตโนมัติ **จันทร์–ศุกร์ 17:15 น. เวลาไทย** (10:15 UTC) หลังตลาดปิด |
+| 4 | **Amazon EventBridge** | ตั้งเวลาปลุก AWS Lambda มาวิเคราะห์หุ้นทุกพอร์ตอัตโนมัติในวันทำการหลังตลาดปิด |
 | 5 | **Amazon SNS** | ส่งอีเมลแจ้งเตือนอัตโนมัติเมื่อพบหุ้นที่มีสัญญาณโดดเด่นหรือมีความเสี่ยงสำคัญ |
 
-### แผนผังสถาปัตยกรรม (AWS Architecture Diagram)
-
-![AWS Architecture Diagram — AI Equity Co-Pilot](architecture-diagram.png)
-
-> ไฟล์ต้นฉบับสำหรับดาวน์โหลดไปใส่สไลด์: [`architecture-diagram.png`](architecture-diagram.png) (ใช้ไอคอนมาตรฐานจาก aws-icons.com)
+*(หมายเหตุ: แผนผังสถาปัตยกรรมในสไลด์นำเสนออ้างอิงไอคอนมาตรฐานจาก aws-icons.com)*
 
 ### ความเข้ากันได้กับ AWS Academy Learner Lab
 
 โปรเจกต์นี้รันได้ทั้งบนบัญชี AWS ปกติและบน **AWS Academy Learner Lab** (region `us-east-1` / `us-west-2`) โดยใช้ `template.learner-lab.yaml` แทน `template.yaml` เพราะ Learner Lab **ไม่อนุญาตให้สร้าง IAM role** จึงต้องผูก role ที่มีอยู่แล้วชื่อ `LabRole` แทน
 
-ก่อน deploy ให้รัน `python3 scripts/preflight.py` เพื่อตรวจว่าบริการที่ต้องใช้ (CloudFormation, Lambda, DynamoDB, SNS, EventBridge, Bedrock) เปิดใช้งานได้จริงในบัญชีของคุณ
+ก่อน deploy ให้รัน `python scripts/preflight.py` เพื่อตรวจว่าบริการที่ต้องใช้ (CloudFormation, Lambda, DynamoDB, SNS, EventBridge, Bedrock) เปิดใช้งานได้จริงในบัญชีของคุณ
 
 **คู่มือแยกตามประเภทบัญชี:**
 - ⚡ **กลุ่มอื่นที่ต้องการ clone แล้วติดตั้งใน 3 คำสั่ง: [QUICKSTART.md](QUICKSTART.md)** (CloudShell, ไม่ต้องลงอะไรในเครื่อง)
 - 🎓 **AWS Academy Learner Lab (เส้นทางหลักของรายวิชา): [SETUP_LEARNER_LAB.md](SETUP_LEARNER_LAB.md)**
 - ☁️ บัญชี AWS ปกติ: [SETUP_GUIDE.md](SETUP_GUIDE.md)
-- 🖱️ **ทำมือทีละคลิกใน Console (ไม่ใช้ template): [MANUAL_CONSOLE_SETUP.md](MANUAL_CONSOLE_SETUP.md)**
 
 ---
 
@@ -85,52 +63,10 @@
 ในบัญชี AWS ปกติ โมเดลส่วนใหญ่เปิดใช้ได้ทันทีเมื่อเรียกครั้งแรก (ไม่ต้องกดขอสิทธิ์ที่หน้า Model access แบบเดิมแล้ว) แต่ถ้าเรียกแล้วได้ `AccessDeniedException` ให้ตรวจตามลำดับนี้:
 1. เข้า **AWS Console** → เลือก Region `us-east-1`
 2. เปิด **Amazon Bedrock** → ทดสอบใน **Playground** ด้วยโมเดล `amazon.nova-lite-v1:0`
-3. ถ้าเรียกผ่าน CLI ให้รัน `python3 scripts/preflight.py` (สคริปต์จะทดสอบเรียกโมเดลจริง 1 ครั้งและบอกผลชัดเจน)
+3. ถ้าเรียกผ่าน CLI ให้รัน `python scripts/preflight.py` (สคริปต์จะทดสอบเรียกโมเดลจริง 1 ครั้งและบอกผลชัดเจน)
 4. ถ้าใช้ **Learner Lab** แล้ว Bedrock ถูกบล็อก: แอปยังใช้งานได้ครบ แต่ผลวิเคราะห์จะมาจาก rule-based fallback (ป้ายบนการ์ดจะระบุ) — ควรแจ้งอาจารย์หรือผู้ดูแลแล็บ
-5. **ถ้า Bedrock ใช้ไม่ได้ และอยากให้ยังได้ผลจาก AI จริง:** ขอ API key ฟรีที่ [Google AI Studio](https://aistudio.google.com/apikey) แล้วใส่ตอน deploy (ดูขั้นตอนที่ 1.5)
-
-### ขั้นตอนที่ 1.5 (ทางเลือก): ตั้งค่า AI สำรอง (Google Gemini)
-
-ระบบเลือกผู้ให้บริการ AI เป็นลำดับ 3 ชั้น เพื่อให้เดโมไม่ล้มไม่ว่าสิทธิ์ AWS จะเป็นอย่างไร
-
-| ลำดับ | ผู้ให้บริการ | เงื่อนไขการใช้งาน |
-|---|---|---|
-| 1 | **Amazon Bedrock** (`amazon.nova-lite-v1:0`) | ใช้เป็นหลักเสมอ (นับเป็น 1 ใน 5 AWS service) |
-| 2 | **Google Gemini** (Google AI Studio) | ใช้เมื่อ Bedrock ถูกปฏิเสธสิทธิ์ **และ** มีการตั้งค่า `GeminiApiKey` — ถ้า Google ตอบ 503/429 ระบบลองซ้ำเองแล้วสลับโมเดลสำรอง (`gemini-3.8-flash`, `gemini-3.1-flash-lite`) ให้อัตโนมัติ |
-| 3 | **Rule-based** (RSI/SMA/ความผันผวน) | ใช้เมื่อสองชั้นแรกใช้ไม่ได้ — แอปยังทำงานครบ |
-
-**วิธีใส่ API key (ไม่ต้องเพิ่ม AWS service ใด ๆ):** key ถูกส่งเข้าเป็น **Parameter ของ CloudFormation/SAM** (`NoEcho: true` เพื่อไม่ให้แสดงใน console) แล้ว SAM ฉีดเป็น environment variable `GEMINI_API_KEY` ให้ Lambda — ไม่มีการเก็บ key ไว้ใน git
-
-```bash
-# วิธีที่แนะนำ: สคริปต์จะถามอีเมลและ Gemini key เอง แล้ว build + deploy ให้
-bash scripts/deploy_learnerlab.sh
-
-# ระบุ key ไปเลยก็ได้ (ไม่ต้องตอบคำถาม)
-bash scripts/deploy_learnerlab.sh --gemini-key AIza... --email you@example.com
-
-# ทางเลือก: deploy ด้วย SAM โดยตรง
-sam deploy --guided
-
-# deploy ซ้ำโดยไม่ต้องกรอกใหม่
-sam deploy --parameter-overrides GeminiApiKey=AIza... AlertEmail=you@example.com
-```
-
-> **ข้อควรระวัง:** repo นี้เป็น public — ห้ามใส่ key ในโค้ด ไฟล์ `.env` ที่ commit หรือภาพ screenshot และควรระบุในรายงานว่า key อยู่ใน Lambda environment variable ซึ่งผู้มีสิทธิ์ในบัญชี AWS อ่านได้
->
-> **ต้นทุน:** โมเดล `gemini-3.5-flash-lite` อยู่ในโควตาฟรีของ Google (ไม่คิดเงินเมื่อไม่ผูกบิลลิ่ง) — ตัวเลขในช่อง “ต้นทุน AI” คำนวณจากราคาปกติของ Google เผื่อกรณีถูกคิดเงินจริง
->
-> **ข้อมูลออกนอก AWS:** ในโหมด AI สำรอง ตัวเลขหุ้นและหัวข่าวจะถูกส่งไปที่ Google ควรระบุเป็นข้อจำกัดด้านความเป็นส่วนตัวในรายงาน
 
 ### ขั้นตอนที่ 2: ติดตั้งระบบทั้งหมดด้วยคำสั่งเดียว (AWS SAM Deploy)
-
-> **ทางลัด — แนะนำที่สุด:** รันคำสั่งเดียวจากโฟลเดอร์โปรเจกต์ สคริปต์จะถามอีเมลและ Gemini key ให้เองแล้ว build + deploy + พิมพ์ `DashboardUrl` ตอนจบ
->
-> ```bash
-> bash scripts/deploy_learnerlab.sh
-> ```
->
-> ส่วนขั้นตอนด้านล่างคือเส้นทาง SAM CLI แบบดิบ สำหรับผู้ที่ต้องการตอบทุกคำถามเอง (หรือใช้กับ template ที่แก้เอง)
-
 เปิด Terminal ในโฟลเดอร์โปรเจกต์ แล้วรันคำสั่งต่อไปนี้ตามลำดับ:
 
 ```bash
@@ -147,17 +83,14 @@ sam deploy --guided
 >
 > ```bash
 > sam build --use-container -t template.learner-lab.yaml
-> sam deploy --guided -t .aws-sam/build/template.yaml
+> sam deploy --guided -t template.learner-lab.yaml
 > ```
->
-> **สำคัญ:** ตอน `sam deploy` ต้องใช้ `-t .aws-sam/build/template.yaml` (template ที่ผ่านการ build) เท่านั้น ถ้าใส่ `-t template.learner-lab.yaml` SAM จะแพ็กเฉพาะ `src/` โดยไม่มีไลบรารี → Lambda ขึ้น `ImportError: fastapi`
 
 ในขั้นตอน `sam deploy --guided` ให้กรอกค่าดังนี้:
 - **Stack Name:** `ai-equity-copilot`
 - **AWS Region:** `us-east-1` (หรือ Region เดียวกับที่เช็ก Bedrock ในขั้นตอนที่ 1)
-- **Parameter AlertEmail:** กรอกอีเมลจริงของคุณเพื่อใช้ทดสอบรับแจ้งเตือนจาก Amazon SNS
+- **Parameter AlertEmail:** กรอกอีเมลจริงของคุณเพื่อใช้ทดสอบรับจ้งเตือนจาก Amazon SNS
 - **Parameter BedrockModelId:** กด Enter เพื่อใช้ค่าเริ่มต้น (หรือระบุ Model ID ที่เปิดไว้)
-- **Parameter GeminiApiKey:** ถ้ายังไม่มี key ให้กด Enter (เว้นว่าง) — ถ้ามี ให้วาง key จาก Google AI Studio เพื่อเปิดใช้ AI สำรอง
 - **Confirm changes before deploy:** `N`
 - **Disable rollback:** `N`
 - **StockCopilotFunction (หรือ StockCopilotFunctionUrl) has no authentication. Is this okay?:** พิมพ์ `y` แล้วกด Enter (เพื่อให้เปิดเข้าหน้าเว็บผ่าน Function URL ได้)
@@ -184,7 +117,7 @@ sam delete --stack-name ai-equity-copilot
 
 ## การเก็บโค้ดบน GitHub
 
-แนะนำให้ push ทั้งโฟลเดอร์ขึ้น **public repo** (repo สาธารณะ) เพราะโจทย์กำหนดให้ Source Code เปิดเป็นสาธารณะ และเพื่อให้เพื่อน clone ไปทำตามได้ แต่ควรรู้ไว้ 3 ข้อ:
+แนะนำให้ push ทั้งโฟลเดอร์ขึ้น **private repo** เพื่อเก็บงานและให้เพื่อน clone ไปทำตามได้ แต่ควรรู้ไว้ 3 ข้อ:
 
 1. **push ไม่ได้ทำให้ deploy ง่ายขึ้น** — SAM ยังรัน `sam build` / `sam deploy` จากเครื่องที่มี AWS CLI + credential (Learner Lab ต้อง Start Lab ทุกครั้ง)
 2. **ห้าม commit**: `samconfig.toml` (มี stack name, region, อีเมล), `.aws-sam/`, `.env`, credential ทุกชนิด — `.gitignore` ในโปรเจกต์กันไว้ให้แล้ว
@@ -213,10 +146,9 @@ git push -u origin main
 | ใช้ AWS Services อย่างน้อย 4 บริการ (ไม่นับ Purple Service) | **Lambda, DynamoDB, Bedrock, EventBridge, SNS = 5 บริการ** (IAM/CloudWatch ไม่นับตามเกณฑ์) | ✅ |
 | Level 3: Complete Application (Web + Database) | CRUD Watchlist, Dashboard, DynamoDB single-table, multi-workspace | ✅ เกินLevel 3 |
 | **Level 4:** Automated, Integrated System — 4+ บริการ + external data API + automated value | EventBridge cron ปลุก Lambda วิเคราะห์ทุกพอร์ตวันทำการ → ส่งอีเมล SNS อัตโนมัติ; ข้อมูลภายนอกจาก `yfinance` + Google News RSS; Bedrock สร้างแผนเทรดภาษาไทย | ✅ |
-| Deliverable: วิดีโอ/vlog ขั้นตอน implementation | ⬜ รออัด — ใส่ลิงก์ในหัวข้อ [ลิงก์สำหรับส่งงาน](#ลิงก์สำหรับส่งงาน-submission-links) | ⬜ |
-| Deliverable: Documentation ที่กลุ่มอื่นทำตามได้ทันเวลา | [QUICKSTART.md](QUICKSTART.md) (3 คำสั่งจบ) + [SETUP_LEARNER_LAB.md](SETUP_LEARNER_LAB.md) และ [SETUP_GUIDE.md](SETUP_GUIDE.md) + `scripts/preflight.py` ตรวจความพร้อม 2 นาที | ✅ |
-| Demo day: ของจริง + Benefit + Architecture + Demonstration | หน้าเว็บทำงานจริง, ตารางสถาปัตยกรรม 5 บริการ + [แผนผังสถาปัตยกรรม](architecture-diagram.png), ตัวเลขต้นทุน token จริง | ✅ |
-| หลักฐานสินค้าจริงบนหน้าเว็บ | Sparkline ราคา 30 วัน, แถบนับถอยหลังรอบ EventBridge 17:15, ป้ายระบุชั้น AI ที่ใช้ (Bedrock / Gemini / กฎเทคนิค), Smart Cache พร้อมปุ่มบังคับวิเคราะห์ใหม่, เครื่องคิดต้นทุน–กำไร (Unit Economics) | ✅ |
+| Deliverable: วิดีโอ/vlog ขั้นตอน implementation | — | ⬜ ต้องอัดเอง |
+| Deliverable: Documentation ที่กลุ่มอื่นทำตามได้ทันเวลา | [SETUP_LEARNER_LAB.md](SETUP_LEARNER_LAB.md) (Learner Lab) และ [SETUP_GUIDE.md](SETUP_GUIDE.md) (AWS ปกติ) + `scripts/preflight.py` ตรวจความพร้อม 2 นาที | ✅ |
+| Demo day: ของจริง + Benefit + Architecture + Demonstration | หน้าเว็บทำงานจริง, ตารางสถาปัตยกรรม 5 บริการ, ตัวเลขต้นทุน token จริง | ✅ (ต้องทำสไลด์/แผนผังเอง) |
 | **Level 5:** Commercially Viable — มีคนยอมจ่ายเงินใช้ | Unit economics คำนวณจาก token จริง, ต้นทุน < 0.10 บาท/หุ้น/ครั้ง, แพ็กเกจ 199 บาท/เดือน, จุดคุ้มทุนในหน้าเว็บ | ⚠️ โครงสร้างธุรกิจครบ แต่ยังขาดหลักฐานความต้องการจากตลาด |
 
 ### สิ่งที่ต้องทำเพิ่มเพื่อให้ถึง Level 5
@@ -227,8 +159,7 @@ git push -u origin main
 
 ### ข้อจำกัดที่ต้องรู้ก่อนเดโม
 
-- บน **AWS Academy Learner Lab** สิทธิ์ Bedrock ขึ้นกับแล็บ: ถ้าเรียกไม่ผ่าน แอปยังทำงานครบ 5 บริการ และจะใช้ **AI สำรอง Google Gemini** ก่อน (เมื่อตั้งค่า `GeminiApiKey` ไว้) ถ้าไม่มี key จึงตกไปที่ **rule-based fallback** — ป้ายบนการ์ดระบุชัดเจนทั้งสองกรณี ควรแจ้งอาจารย์ล่วงหน้า
-- **Google Gemini อาจตอบ 503/429 ได้:** ระบบลองซ้ำ 1 ครั้ง แล้วสลับโมเดลสำรองอัตโนมัติ (`gemini-3.8-flash` → `gemini-3.1-flash-lite`) ก่อนตกไปกฎเทคนิค — ถ้าทุกชั้นไม่พร้อม ป้ายบนการ์ด + ข้อความสีเหลืองจะบอกเหตุผลจริง (เช่น `HTTP 503`)
+- บน **AWS Academy Learner Lab** สิทธิ์ Bedrock ขึ้นกับแล็บ: ถ้าเรียกไม่ผ่าน แอปยังทำงานครบ 5 บริการ แต่ผลวิเคราะห์จะมาจาก **rule-based fallback** (ป้ายบนการ์ดระบุชัดเจน) — ควรแจ้งอาจารย์ล่วงหน้า
 - ข้อมูลราคา/ข่าวมาจาก `yfinance` และ Google News แบบไม่เป็นทางการ: อาจดีเลย์หรือถูกจำกัดอัตราการเรียกได้ในบางช่วง ถ้าดึงข้อมูลไม่ได้ ระบบจะแจ้งเป็นภาษาไทยรายหุ้น ไม่ทำให้ทั้งพอร์ตล่ม
 
 ---

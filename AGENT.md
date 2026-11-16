@@ -15,8 +15,9 @@
    - `Amazon EventBridge` (ตั้งกฎ `Schedule` ปลุก Lambda อัตโนมัติหลังตลาดปิดวันจันทร์–ศุกร์)
    - `Amazon SNS` (สร้าง SNS Topic + Email Subscription เพื่อส่งอีเมลแจ้งเตือนรายงานสรุป)
 2. **ห้ามใช้ S3 โฮสต์เว็บ และห้ามใช้ API Gateway:**
-   - เพื่อตัดปัญหา CORS, ปัญหา S3 Public Access Block 403 และเพดาน Timeout 29 วินาทีของ API Gateway ให้รัน FastAPI ผ่าน `Mangum` บน **AWS Lambda Function URL** (ตั้ง Timeout ของ Lambda ไว้ที่ `120` วินาที และ Memory `512` MB)
+   - เพื่อตัดปัญหา CORS, ปัญหา S3 Public Access Block 403 และเพดาน Timeout 29 วินาทีของ API Gateway ให้รัน FastAPI ผ่าน `Mangum` บน **AWS Lambda Function URL** (ตั้ง Timeout ของ Lambda ไว้ที่ `300` วินาที และ Memory `512` MB)
 3. **Zero External API Keys (ห้ามบังคับใช้คีย์ภายนอกเด็ดขาด):**
+   - AI หลักคือ Amazon Bedrock และต้องมี **AI สำรอง Google Gemini แบบไม่บังคับ** (ตั้งผ่าน `GeminiApiKey` / `GEMINI_API_KEY`) ใช้ `urllib` จาก stdlib เท่านั้น ห้ามเพิ่ม dependency — ลำดับการเรียกคือ Bedrock → Gemini → `rule_based_analysis` และต้องไม่ล่ม (ห้าม 500) ไม่ว่าจะล้มชั้นไหน
    - ดึงราคาหุ้นย้อนหลังและข้อมูลพื้นฐานผ่าน `yfinance` (ต้องรองรับทั้งหุ้นไทย เช่น `PTT.BK`, `DELTA.BK`, `SCB.BK` และหุ้นสหรัฐฯ เช่น `NVDA`, `AAPL`, `TSLA`)
    - ดึงข่าวสารล่าสุดจาก `yfinance` ควบคู่กับ **Google News RSS** (`https://news.google.com/rss/search?q={query}&hl=th&gl=TH&ceid=TH:th` สำหรับหุ้น `.BK` และ `hl=en-US` สำหรับหุ้นสหรัฐฯ) โดยแปลง XML ด้วยไลบรารีมาตรฐาน `xml.etree.ElementTree` ของ Python
 4. **ไลบรารีต้องเบาและ Build บน AWS Lambda ง่าย:**
@@ -42,6 +43,7 @@
 ├── scripts/
 │   ├── preflight.py           # ตรวจสิทธิ์/บริการก่อน deploy (read-only + ทดสอบ Bedrock 1 ครั้ง)
 │   └── deploy_learnerlab.sh   # ติดตั้งจบในคำสั่งเดียว (CloudShell / เครื่องตัวเอง)
+├── DEMO_RUNBOOK.md            # เช็กลิสต์ซ้อมเดโม 10 นาที + แผนสำรองเมื่อ AI ใช้งานไม่ได้
 └── src/
     ├── requirements.txt       # ไลบรารี Python ที่ SAM ติดตั้งเข้า Lambda
     ├── app.py                 # Entrypoint หลัก (รองรับทั้ง EventBridge Event และ FastAPI/Mangum HTTP)
@@ -72,13 +74,15 @@
   - `AlertEmail` (Type: String) สำหรับผูก Email Subscription เข้ากับ SNS Topic อัตโนมัติ
   - `BedrockModelId` (Type: String, Default: `amazon.nova-lite-v1:0`) เพื่อให้สลับเป็น `anthropic.claude-3-haiku-20240307-v1:0` หรือโมเดลอื่นได้โดยไม่ต้องแก้โค้ด
   - `CacheTtlSeconds` (Type: Number, Default: `3600`)
+  - `GeminiApiKey` (Type: String, NoEcho) AI สำรองแบบไม่บังคับ — เว้นว่างได้
+  - `GeminiModelId` (Type: String, Default: `gemini-3.5-flash-lite`) ส่งเข้า Lambda เป็น `GEMINI_MODEL_ID`
 - **Resources:**
   - `PortfolioTable` (`AWS::DynamoDB::Table`): BillingMode `PAY_PER_REQUEST`, Partition Key `pk` (String), Sort Key `sk` (String), เปิดใช้งาน `TimeToLiveSpecification` บนฟิลด์ `ttl`
   - `AlertTopic` (`AWS::SNS::Topic`) พร้อม `AlertEmailSubscription` (`AWS::SNS::Subscription` แบบ `email`)
   - `StockCopilotFunction` (`AWS::Serverless::Function`):
     - `Runtime: python3.12`, `Handler: app.handler`, `CodeUri: src/`, `Timeout: 120`, `MemorySize: 512`
     - `FunctionUrlConfig`: `AuthType: NONE` พร้อมเปิด `Cors` (`AllowOrigins: ["*"]`, `AllowMethods: ["*"]`, `AllowHeaders: ["*"]`)
-    - `Events`: ผูก `DailyMarketCloseSchedule` (`Type: Schedule`, `Schedule: cron(15 10 ? * MON-FRI *)` ซึ่งตรงกับ 17:15 น. เวลาไทยหลังตลาดหุ้นไทยปิด)
+    - `Events`: ผูก `DailyMarketClose` (`Type: Schedule`, `Schedule: cron(15 10 ? * MON-FRI *)` ซึ่งตรงกับ 17:15 น. เวลาไทยหลังตลาดหุ้นไทยปิด)
     - `Policies`: ให้สิทธิ์ `DynamoDBCrudPolicy` บนตาราง, `SNSPublishMessagePolicy` บน Topic และ IAM Statement อนุญาต `bedrock:InvokeModel`
 - **Outputs:** แสดงค่า `DashboardUrl` (ค่าจาก `StockCopilotFunctionUrl.FunctionUrl`), `DynamoDBTableName` และ `SNSTopicArn`
 - **เวอร์ชัน Learner Lab (`template.learner-lab.yaml`):** ไฟล์นี้ต้องมีเพิ่ม 2 Parameters — `AlertEmail` (เว้นว่างได้, มี `Condition: HasAlertEmail`) และ `LabRoleArn` (เว้นว่าง = ใช้ `arn:aws:iam::<AccountId>:role/LabRole`, มี `Condition: HasCustomRole`), ใช้ `Role:` แทน `Policies:` และมี Output เพิ่ม `ExecutionRole`
@@ -115,6 +119,7 @@
      - `catalysts` (รายการปัจจัยบวกภาษาไทย 2–3 ข้อ)
      - `risks` (รายการความเสี่ยงที่ต้องระวังภาษาไทย 2–3 ข้อ)
    - **การคำนวณต้นทุนจริง (Unit Economics Proof):** อ่านค่า `usage.inputTokens` และ `usage.outputTokens` จากผลตอบกลับของ `converse` แล้วคำนวณต้นทุนจริงเป็นดอลลาร์และเงินบาทแนบกลับไปกับผลลัพธ์ทุกครั้ง พร้อมมีระบบ Fallback สรุปผลจากกฎทางเทคนิคหากกรณีบัญชีผู้ทดสอบยังไม่ได้เปิดสิทธิ์ Bedrock เพื่อไม่ให้แอปล่ม
+   - **AI สำรอง (Gemini):** ถ้า Bedrock ถูกบล็อกสิทธิ์หรือ timeout ให้เรียก Gemini ผ่าน `urllib` (key จาก env `GEMINI_API_KEY`, โมเดลจาก `GEMINI_MODEL_ID`) โดยลองโมเดลหลัก 2 ครั้ง (มี delay 1.5 วิ เฉพาะ 429/5xx) แล้วลองโมเดลสำรองอีก 2 ตัว จากนั้นจึงตกไป `rule_based_analysis` — ผลลัพธ์ต้องมีฟิลด์ `source` เป็น `bedrock` / `gemini_fallback` / `rule_based`
 3. **การประมวลผลแบบขนาน (Parallel Execution):**
    - ใช้ `concurrent.futures.ThreadPoolExecutor(max_workers=5)` วิเคราะห์หุ้นทุกตัวในพอร์ตพร้อมกัน และสร้างบทสรุปภาพรวมความเสี่ยงของทั้งพอร์ต (`portfolio_summary`) ให้ด้วย
 
@@ -136,7 +141,7 @@
 - **ส่วนจัดการ Watchlist (CRUD):** ช่องพิมพ์เพิ่มรหัสหุ้นพร้อมปุ่มตัวอย่างลัด (`PTT.BK`, `ADVANC.BK`, `NVDA`, `AAPL`), รายการหุ้นที่กดลบได้, ปุ่ม **วิเคราะห์พอร์ตด้วย AI** (พร้อมตัวเลือกบังคับดึงข้อมูลสดไม่ใช้ Cache) และปุ่ม **ส่งรายงานเข้าอีเมล (SNS)**
 - **การ์ดสรุปสุขภาพพอร์ตรวม (Portfolio Health Banner):** แสดงคะแนนเฉลี่ยของพอร์ต สัดส่วนสัญญาณ Buy/Watch/Sell, สัดส่วนความเสี่ยง (ต่ำ/กลาง/สูง) และคำแนะนำภาพรวม
 - **ตารางสรุปภาพรวมรายตัว (Decision Summary Rows):** บรรทัดย่อต่อหุ้น แสดงรหัส, สัญญาณ, เปลี่ยนแปลงวันนี้, คะแนน และป้ายความเสี่ยง — อ่านจบพอร์ตได้ในหน้าเดียว
-- **การ์ด AI Decision Dashboard รายตัว:** แสดงราคา เปอร์เซ็นต์เปลี่ยนแปลง ค่า RSI/SMA (+ความผันผวน 20 วัน) เกจคะแนนเต็ม 100 ป้ายสัญญาณสีชัดเจน ป้ายระดับความเสี่ยงพร้อมเหตุผล ป้าย `news_tone` (ข่าวบวก/กลาง/ลบ) กรอบแผนปฏิบัติการ (จุดรับ/ต้าน/ตัดขาดทุน) และรายการปัจจัยเร่งเทียบความเสี่ยง พร้อมป้ายบอกสถานะว่าดึงจาก `Smart Cache` หรือ `Live Bedrock AI`
+- **การ์ด AI Decision Dashboard รายตัว:** แสดงราคา เปอร์เซ็นต์เปลี่ยนแปลง ค่า RSI/SMA (+ความผันผวน 20 วัน) เกจคะแนนเต็ม 100 ป้ายสัญญาณสีชัดเจน ป้ายระดับความเสี่ยงพร้อมเหตุผล ป้าย `news_tone` (ข่าวบวก/กลาง/ลบ) กรอบแผนปฏิบัติการ (จุดรับ/ต้าน/ตัดขาดทุน) และรายการปัจจัยเร่งเทียบความเสี่ยง พร้อมป้ายบอกสถานะ 4 แบบคือ `Smart Cache` / `Live Bedrock AI` / `AI สำรอง (Gemini)` / `Rule-based Fallback`
 - **ประสิทธิภาพของหน้าเว็บ:** ใช้ `preconnect` กับ CDN, แสดง skeleton ระหว่างรอผล และบันทึกผลลัพธ์ล่าสุดลง `localStorage` เพื่อให้เปิดหน้าซ้ำเห็นผลได้ทันที (แล้วค่อยอัปเดตจาก API)
 - **แท็บ/ป๊อปอัป Business & Cost Calculator (สำหรับโชว์คะแนน Level 5):** แสดงต้นทุน Token จริงของการกดวิเคราะห์รอบล่าสุด (หน่วยสตางค์) พร้อมเครื่องคิดเลขจำลองรายได้เทียบต้นทุน AWS หากเปิดขายแพ็กเกจรายเดือน (เช่น 199 บาท/เดือน)
 

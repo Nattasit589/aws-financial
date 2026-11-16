@@ -82,6 +82,16 @@ def to_jsonable(value):
     return value
 
 
+def _to_dynamodb(value):
+    if isinstance(value, float):
+        return Decimal(str(value))
+    if isinstance(value, dict):
+        return {str(key): _to_dynamodb(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_to_dynamodb(item) for item in value]
+    return value
+
+
 # --------------------------------------------------------------------------
 # Watchlist
 # --------------------------------------------------------------------------
@@ -181,7 +191,7 @@ def put_analysis(workspace_id: str, symbol: str, persona: str, analysis: dict) -
     ttl = int(time.time()) + CACHE_TTL_SECONDS
     item = {
         **_analysis_key(normalize_workspace(workspace_id), symbol, persona),
-        "analysis_data": to_jsonable(analysis),
+        "analysis_data": _to_dynamodb(analysis),
         "analyzed_at": analysis.get("analyzed_at") or _now_iso(),
         "ttl": ttl,
     }
