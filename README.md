@@ -7,6 +7,21 @@
 
 ---
 
+## ลิงก์สำหรับส่งงาน (Submission Links)
+
+| # | รายการที่ต้องส่ง | ลิงก์ |
+|---|---|---|
+| 1 | **Source Code (Public Repository)** | `https://github.com/Nattasit589/aws-financial` |
+| 2 | **Step-by-Step Documentation** | `https://github.com/Nattasit589/aws-financial/blob/main/QUICKSTART.md` |
+| 3 | **AWS Architecture Diagram** | `https://github.com/Nattasit589/aws-financial/blob/main/architecture-diagram.png` |
+| 4 | **Video / Vlog Implementation** | ⬜ *รอใส่ลิงก์วิดีโอ (YouTube / Google Drive แบบเปิดสาธารณะ)* |
+
+> ทุกลิงก์เป็นการเปิดจาก repo **public** นี้โดยตรง ไม่ต้องล็อกอิน และไม่ต้องดาวน์โหลดไฟล์
+>
+> **คู่มือฉบับอื่น (สำหรับกลุ่มที่ใช้บัญชีต่างกัน):** [QUICKSTART.md](QUICKSTART.md) ฉบับย่อ 3 คำสั่งบน CloudShell · [SETUP_LEARNER_LAB.md](SETUP_LEARNER_LAB.md) ฉบับละเอียดสำหรับ AWS Academy Learner Lab · [SETUP_GUIDE.md](SETUP_GUIDE.md) บัญชี AWS ปกติ · [MANUAL_CONSOLE_SETUP.md](MANUAL_CONSOLE_SETUP.md) ทำมือทีละคลิกใน Console
+
+---
+
 ## ประโยชน์ของแอปพลิเคชันและโมเดลธุรกิจ (Application Benefit & Level 5 Viability)
 
 - **แก้ปัญหาจริงของนักลงทุนรายย่อย:** ลดเวลาอ่านข่าวและดูกราฟหุ้นหลายตัวจากวันละ 1–2 ชั่วโมง เหลือเพียง **30 วินาที** ด้วยบทสรุปคะแนน (0–100), สัญญาณ (Buy / Watch / Sell), จุดเข้าซื้อ-ตัดขาดทุน และปัจจัยเสี่ยงภาษาไทย
@@ -29,7 +44,11 @@
 | 4 | **Amazon EventBridge** | ตั้งเวลาปลุก AWS Lambda มาวิเคราะห์หุ้นทุกพอร์ตอัตโนมัติในวันทำการหลังตลาดปิด |
 | 5 | **Amazon SNS** | ส่งอีเมลแจ้งเตือนอัตโนมัติเมื่อพบหุ้นที่มีสัญญาณโดดเด่นหรือมีความเสี่ยงสำคัญ |
 
-*(หมายเหตุ: แผนผังสถาปัตยกรรมในสไลด์นำเสนออ้างอิงไอคอนมาตรฐานจาก aws-icons.com)*
+### แผนผังสถาปัตยกรรม (AWS Architecture Diagram)
+
+![AWS Architecture Diagram — AI Equity Co-Pilot](architecture-diagram.png)
+
+> ไฟล์ต้นฉบับสำหรับดาวน์โหลดไปใส่สไลด์: [`architecture-diagram.png`](architecture-diagram.png) (ใช้ไอคอนมาตรฐานจาก aws-icons.com)
 
 ### ความเข้ากันได้กับ AWS Academy Learner Lab
 
@@ -120,7 +139,7 @@ sam delete --stack-name ai-equity-copilot
 
 ## การเก็บโค้ดบน GitHub
 
-แนะนำให้ push ทั้งโฟลเดอร์ขึ้น **private repo** เพื่อเก็บงานและให้เพื่อน clone ไปทำตามได้ แต่ควรรู้ไว้ 3 ข้อ:
+แนะนำให้ push ทั้งโฟลเดอร์ขึ้น **public repo** (repo สาธารณะ) เพราะโจทย์กำหนดให้ Source Code เปิดเป็นสาธารณะ และเพื่อให้เพื่อน clone ไปทำตามได้ แต่ควรรู้ไว้ 3 ข้อ:
 
 1. **push ไม่ได้ทำให้ deploy ง่ายขึ้น** — SAM ยังรัน `sam build` / `sam deploy` จากเครื่องที่มี AWS CLI + credential (Learner Lab ต้อง Start Lab ทุกครั้ง)
 2. **ห้าม commit**: `samconfig.toml` (มี stack name, region, อีเมล), `.aws-sam/`, `.env`, credential ทุกชนิด — `.gitignore` ในโปรเจกต์กันไว้ให้แล้ว
@@ -149,9 +168,9 @@ git push -u origin main
 | ใช้ AWS Services อย่างน้อย 4 บริการ (ไม่นับ Purple Service) | **Lambda, DynamoDB, Bedrock, EventBridge, SNS = 5 บริการ** (IAM/CloudWatch ไม่นับตามเกณฑ์) | ✅ |
 | Level 3: Complete Application (Web + Database) | CRUD Watchlist, Dashboard, DynamoDB single-table, multi-workspace | ✅ เกินLevel 3 |
 | **Level 4:** Automated, Integrated System — 4+ บริการ + external data API + automated value | EventBridge cron ปลุก Lambda วิเคราะห์ทุกพอร์ตวันทำการ → ส่งอีเมล SNS อัตโนมัติ; ข้อมูลภายนอกจาก `yfinance` + Google News RSS; Bedrock สร้างแผนเทรดภาษาไทย | ✅ |
-| Deliverable: วิดีโอ/vlog ขั้นตอน implementation | — | ⬜ ต้องอัดเอง |
-| Deliverable: Documentation ที่กลุ่มอื่นทำตามได้ทันเวลา | [SETUP_LEARNER_LAB.md](SETUP_LEARNER_LAB.md) (Learner Lab) และ [SETUP_GUIDE.md](SETUP_GUIDE.md) (AWS ปกติ) + `scripts/preflight.py` ตรวจความพร้อม 2 นาที | ✅ |
-| Demo day: ของจริง + Benefit + Architecture + Demonstration | หน้าเว็บทำงานจริง, ตารางสถาปัตยกรรม 5 บริการ, ตัวเลขต้นทุน token จริง | ✅ (ต้องทำสไลด์/แผนผังเอง) |
+| Deliverable: วิดีโอ/vlog ขั้นตอน implementation | ⬜ รออัด — ใส่ลิงก์ในหัวข้อ [ลิงก์สำหรับส่งงาน](#ลิงก์สำหรับส่งงาน-submission-links) | ⬜ |
+| Deliverable: Documentation ที่กลุ่มอื่นทำตามได้ทันเวลา | [QUICKSTART.md](QUICKSTART.md) (3 คำสั่งจบ) + [SETUP_LEARNER_LAB.md](SETUP_LEARNER_LAB.md) และ [SETUP_GUIDE.md](SETUP_GUIDE.md) + `scripts/preflight.py` ตรวจความพร้อม 2 นาที | ✅ |
+| Demo day: ของจริง + Benefit + Architecture + Demonstration | หน้าเว็บทำงานจริง, ตารางสถาปัตยกรรม 5 บริการ + [แผนผังสถาปัตยกรรม](architecture-diagram.png), ตัวเลขต้นทุน token จริง | ✅ |
 | **Level 5:** Commercially Viable — มีคนยอมจ่ายเงินใช้ | Unit economics คำนวณจาก token จริง, ต้นทุน < 0.10 บาท/หุ้น/ครั้ง, แพ็กเกจ 199 บาท/เดือน, จุดคุ้มทุนในหน้าเว็บ | ⚠️ โครงสร้างธุรกิจครบ แต่ยังขาดหลักฐานความต้องการจากตลาด |
 
 ### สิ่งที่ต้องทำเพิ่มเพื่อให้ถึง Level 5
