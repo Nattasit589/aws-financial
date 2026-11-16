@@ -27,6 +27,23 @@ read -p "กรอกอีเมลจริงสำหรับรับแ�
 bash scripts/deploy_learnerlab.sh --email "$USER_EMAIL"
 ```
 
+### ทางเลือก: เปิดใช้ AI สำรอง (Google Gemini)
+
+Learner Lab มักไม่ให้สิทธิ์ `bedrock:InvokeModel` ทำให้ระบบต้องสรุปด้วยกฎเทคนิค (ป้าย **Rule-based Fallback** สีเหลือง) ถ้าอยากให้ได้ผลจาก AI จริง ให้ขอ API key ฟรีที่ [Google AI Studio](https://aistudio.google.com/apikey) แล้วรันคำสั่งนี้แทน:
+
+```bash
+read -p "กรอกอีเมลจริงสำหรับรับแจ้งเตือน: " USER_EMAIL
+read -p "วาง Gemini API key: " GEMINI_KEY
+bash scripts/deploy_learnerlab.sh --email "$USER_EMAIL" --gemini-key "$GEMINI_KEY"
+```
+
+- key จะถูกส่งเป็น **Parameter ของ CloudFormation** (`NoEcho: true`) แล้ว SAM ฉีดเป็น environment variable `GEMINI_API_KEY` ให้ Lambda — **ไม่มี key ใน git**
+- **ไม่มีการเพิ่ม AWS service ใด ๆ** (ยังคง Lambda, DynamoDB, Bedrock, EventBridge, SNS = 5 บริการ)
+- ไม่เพิ่ม dependency ใน `requirements.txt` (ใช้ `urllib` จาก standard library)
+- ลำดับการเลือก AI: **Bedrock → Gemini → กฎเทคนิค**
+- เปลี่ยนโมเดล Gemini ได้ที่ `GeminiModelId` ตอน `sam deploy` (ค่าเริ่มต้น `gemini-3.5-flash-lite`) — ไม่ต้องแก้โค้ด
+- ⚠️ repo นี้เป็น public — ห้าม commit key หรือใส่ใน screenshot
+
 สคริปต์จะทำให้ทั้งหมดนี้ในคำสั่งเดียว:
 
 1. ตรวจ credential (ไม่ต้อง `aws configure` เพราะ CloudShell ล็อกอินอยู่แล้ว)
@@ -34,11 +51,11 @@ bash scripts/deploy_learnerlab.sh --email "$USER_EMAIL"
 3. เลือกวิธี build ที่ตรงกับ runtime `python3.12` (ใช้ Python 3.12 ที่เพิ่งติดตั้ง / Docker ถ้ามี)
 4. ติดตั้ง `boto3` ถ้าจำเป็น แล้วรัน preflight ตรวจสิทธิ์ Bedrock + บริการที่ต้องใช้
 5. `sam build` → `sam deploy` ด้วย `.aws-sam/build/template.yaml` (template ที่มีไลบรารีครบ) แบบไม่ต้องตอบคำถาม
-6. พิมพ์ **DashboardUrl** ให้เปิดใช้งานทันที
+6. ส่ง `GeminiApiKey` (ถ้าใส่ `--gemini-key`) และพิมพ์ **DashboardUrl** ให้เปิดใช้งานทันที
 
-> **หมายเหตุ:** หาก preflight แจ้งว่า Bedrock ถูกปฏิเสธสิทธิ์ (`AccessDeniedException`) ไม่ต้องกังวล ระบบจะสลับไปใช้โหมดวิเคราะห์สำรอง (Rule-based fallback) ให้อัตโนมัติและทำงานครบทุกฟีเจอร์
+> **หมายเหตุ:** หาก preflight แจ้งว่า Bedrock ถูกปฏิเสธสิทธิ์ (`AccessDeniedException`) ไม่ต้องกังวล ระบบจะใช้ **AI สำรอง Google Gemini** ก่อน (เมื่อใส่ `--gemini-key`) ถ้าไม่มี key จะสลับไปใช้ Rule-based fallback — ป้ายบนการ์ดระบุชัดเจนทุกกรณี และแอปทำงานครบทุกฟีเจอร์
 
-ออปชันเสริม: `--stack my-group` (เปลี่ยนชื่อ stack), `--model us.amazon.nova-lite-v1:0` (ใช้ cross-region inference profile), `--skip-preflight` (ข้ามการตรวจ)
+ออปชันเสริม: `--stack my-group` (เปลี่ยนชื่อ stack), `--model us.amazon.nova-lite-v1:0` (ใช้ cross-region inference profile), `--gemini-key <key>` (AI สำรองจาก Google AI Studio), `--skip-preflight` (ข้ามการตรวจ)
 
 <details>
 <summary><b>ถ้าอยากสั่งเองทีละคำสั่ง (ไม่ใช้สคริปต์)</b></summary>
@@ -60,7 +77,7 @@ sam deploy \
   --capabilities CAPABILITY_IAM \
   --no-confirm-changeset \
   --no-fail-on-empty-changeset \
-  --parameter-overrides AlertEmail=you@example.com BedrockModelId=amazon.nova-lite-v1:0
+  --parameter-overrides AlertEmail=you@example.com BedrockModelId=amazon.nova-lite-v1:0 GeminiApiKey=AIza...
 ```
 
 > ถ้าใส่ `-t template.learner-lab.yaml` (ไฟล์ต้นฉบับ) SAM จะแพ็กแค่ `src/` โดยไม่มี `fastapi`/`pandas` → Lambda ขึ้น `ImportError`
@@ -91,4 +108,5 @@ rm -rf /tmp/aws-financial /tmp/pip-cache
 | `Cannot find binary python3.12` ตอน build | ยังไม่ได้ติดตั้ง Python 3.12 ในขั้นตอนที่ 1 หรือ PATH ยังไม่เห็น → เปิด CloudShell ใหม่แล้วรันสคริปต์ซ้ำ |
 | `Lambda ขึ้น ImportError: fastapi` | deploy ด้วย template ต้นฉบับ → build ใหม่แล้ว deploy ด้วย `.aws-sam/build/template.yaml` |
 | `No space left on device` | ยังทำงานใน home directory → ต้องอยู่ใต้ `/tmp` ตามขั้นตอนที่ 1 |
-| preflight ❌ Bedrock | แล็บบล็อกสิทธิ์ — ใช้ `--skip-preflight` แล้วเดโมด้วย rule-based fallback |
+| preflight ❌ Bedrock | แล็บบล็อกสิทธิ์ — ใช้ `--skip-preflight` แล้วใส่ `--gemini-key` เพื่อใช้ AI สำรอง (หรือเดโมด้วย rule-based fallback) |
+| ขึ้นแค่ป้าย **Rule-based Fallback** ไม่ขึ้น **AI สำรอง (Gemini)** | ยังไม่ได้ใส่ `--gemini-key`, key ไม่ถูกต้อง/หมดสิทธิ์ หรือยังไม่ได้กด “บังคับวิเคราะห์ใหม่” (ผลเก่ายังอยู่ใน Smart Cache) |

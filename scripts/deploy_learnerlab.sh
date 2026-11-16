@@ -18,6 +18,8 @@ STACK_NAME="${STACK_NAME:-ai-equity-copilot}"
 REGION="${AWS_REGION:-us-east-1}"
 MODEL="${BEDROCK_MODEL_ID:-amazon.nova-lite-v1:0}"
 EMAIL="${ALERT_EMAIL:-}"
+# AI สำรอง: ถ้า Learner Lab บล็อก bedrock:InvokeModel จะใช้ Gemini แทน (เว้นว่างได้)
+GEMINI_KEY="${GEMINI_API_KEY:-}"
 TEMPLATE="template.learner-lab.yaml"
 SKIP_PREFLIGHT=0
 DO_DELETE=0
@@ -30,6 +32,7 @@ usage() {
   --stack <ชื่อ>       ชื่อ CloudFormation stack (ค่าเริ่มต้น: ai-equity-copilot)
   --region <region>    region ของ Learner Lab (ค่าเริ่มต้น: us-east-1)
   --model <model-id>   โมเดล Bedrock (ค่าเริ่มต้น: amazon.nova-lite-v1:0)
+  --gemini-key <key>   API key จาก Google AI Studio — ใช้เป็น AI สำรองเมื่อ Bedrock ถูกบล็อก
   --skip-preflight     ข้ามการตรวจสิทธิ์ก่อน deploy
   --delete             ลบ stack ทั้งหมด (ถามยืนยันครั้งเดียว)
   -h, --help           แสดงข้อความนี้
@@ -44,6 +47,7 @@ while [[ $# -gt 0 ]]; do
     --stack) STACK_NAME="${2:-}"; shift 2 ;;
     --region) REGION="${2:-}"; shift 2 ;;
     --model) MODEL="${2:-}"; shift 2 ;;
+    --gemini-key) GEMINI_KEY="${2:-}"; shift 2 ;;
     --skip-preflight) SKIP_PREFLIGHT=1; shift ;;
     --delete) DO_DELETE=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -158,7 +162,7 @@ sam deploy \
   --capabilities CAPABILITY_IAM \
   --no-confirm-changeset \
   --no-fail-on-empty-changeset \
-  --parameter-overrides "AlertEmail=$EMAIL" "BedrockModelId=$MODEL"
+  --parameter-overrides "AlertEmail=$EMAIL" "BedrockModelId=$MODEL" "GeminiApiKey=$GEMINI_KEY"
 
 # ---------------------------------------------------------------- outputs
 info "ผลลัพธ์"
@@ -175,5 +179,11 @@ DASHBOARD_URL="$(aws cloudformation describe-stacks \
 printf '\n\033[1;32mเรียบร้อย! เปิดหน้าเว็บได้ที่:\033[0m\n  %s\n' "${DASHBOARD_URL:-<ดูใน CloudFormation Outputs>}"
 if [[ -n "$EMAIL" ]]; then
   printf '\nอย่าลืมกด Confirm subscription ในอีเมล (%s) ก่อนกดส่งรายงาน\n' "$EMAIL"
+fi
+if [[ -z "$GEMINI_KEY" ]]; then
+  printf '\nยังไม่ได้ใส่ --gemini-key: ถ้า Bedrock ถูกบล็อกสิทธิ์ ระบบจะสรุปด้วยกฎเทคนิคแทน AI\n'
+  printf '  เพิ่มภายหลังได้: bash scripts/deploy_learnerlab.sh --email %s --gemini-key <key จาก AI Studio>\n' "${EMAIL:-you@example.com}"
+else
+  printf '\nได้ตั้ง Gemini API key แล้ว — ถ้า Bedrock ถูกบล็อก ระบบจะใช้ AI สำรอง (Gemini) ก่อนตกไปกฎเทคนิค\n'
 fi
 printf '\nลบทั้งหมดภายหลัง: bash scripts/deploy_learnerlab.sh --delete\n'
