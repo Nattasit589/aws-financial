@@ -135,7 +135,7 @@ aws sns list-subscriptions-by-topic --topic-arn "$TOPIC_ARN" --region us-east-1 
   - **Handler:** แก้จาก `lambda_function.lambda_handler` เป็น `app.handler` → กด **Save**
 
 ### 3.3 ใส่ Environment variables
-ไปที่แท็บ **Configuration** → เมนูซ้าย **Environment variables** → **Edit** → **Add environment variable** (ใส่ครบทั้ง 6 ตัว):
+ไปที่แท็บ **Configuration** → เมนูซ้าย **Environment variables** → **Edit** → **Add environment variable** (ใส่ครบทั้ง 6 ตัว + 2 ตัวเลือกถ้าจะใช้ AI สำรอง):
 
 | Key | Value |
 |---|---|
@@ -145,8 +145,10 @@ aws sns list-subscriptions-by-topic --topic-arn "$TOPIC_ARN" --region us-east-1 
 | `CACHE_TTL_SECONDS` | `3600` |
 | `USD_TO_THB` | `36.0` |
 | `MAX_SYMBOLS` | `10` |
+| `GEMINI_API_KEY` | *(ไม่บังคับ)* key จาก Google AI Studio — เปิดใช้ AI สำรองเมื่อ Bedrock ถูกบล็อกสิทธิ |
+| `GEMINI_MODEL_ID` | `gemini-3.5-flash-lite` (แก้เป็น `gemini-3.8-flash` ได้ถ้าโมเดลนี้ไม่พร้อม) |
 
-> ถ้าแล็บบล็อกโมเดลนี้ ให้ลองเปลี่ยนเป็น `us.amazon.nova-lite-v1:0` หรือปล่อยไว้ให้ระบบสลับเข้า Rule-based fallback อัตโนมัติ
+> ถ้าแล็บบล็อกโมเดลนี้ ให้ลองเปลี่ยนเป็น `us.amazon.nova-lite-v1:0` ถ้ายังไม่ได้และมี `GEMINI_API_KEY` ระบบจะใช้ **AI สำรอง Google Gemini** ก่อน ถ้าไม่มี key จึงสลับเข้า **Rule-based fallback** อัตโนมัติ (ป้ายบนการ์ดบอกว่าผลมาจากชั้นไหน)
 
 ### 3.4 แพ็กโค้ด + อัปโหลดผ่าน S3 (ทำใน CloudShell)
 เนื่องจากไฟล์ `.zip` เมื่อรวมไลบรารี `fastapi` + `yfinance` + `pandas` จะมีขนาดประมาณ **65.5 MB** (เกินลิมิต 50 MB ของการอัปโหลดตรง) จึงต้องพักไฟล์ผ่านถัง S3 ก่อนอัปโหลดเข้า Lambda:
@@ -348,7 +350,7 @@ rm -rf /tmp/aws-financial /tmp/build /tmp/function.zip /tmp/pip-cache
 - [ ] DynamoDB `portfolio` สถานะ Active + เปิด TTL (`ttl`)
 - [ ] SNS topic + subscription ยืนยันอีเมลแล้ว
 - [ ] Lambda `ai-equity-copilot-app` runtime 3.12, handler `app.handler`, 512 MB, 120 วิ, role `LabRole`
-- [ ] Environment variables ครบทั้ง 6 ตัว
+- [ ] Environment variables ครบทั้ง 6 ตัว (+ `GEMINI_API_KEY`/`GEMINI_MODEL_ID` ถ้าจะใช้ AI สำรอง)
 - [ ] อัปโหลด zip ผ่าน S3 แล้วสถานะ `LastUpdateStatus: Successful`
 - [ ] Function URL auth = NONE + CORS เปิด และทดสอบ `curl` ได้หน้า HTML
 - [ ] EventBridge rule `daily-market-close-analysis` ผูกกับฟังก์ชันเรียบร้อย

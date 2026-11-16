@@ -135,7 +135,17 @@ python3 scripts/preflight.py
 ไม่ต้องทำอะไร ระบบจะใช้ AI จริง (`amazon.nova-lite-v1:0`) และการ์ดผลวิเคราะห์จะขึ้นป้าย **Live Bedrock AI**
 
 ### 4.2 ถ้า preflight ไม่ผ่าน
-แอป **ยังทำงานครบ 5 บริการ** แต่ผลวิเคราะห์จะมาจาก **rule-based fallback** (ป้ายบนการ์ดจะระบุ + มีคำอธิบายสีเหลืองท้ายการ์ด) ซึ่งยังนับเป็นระบบอัตโนมัติเต็มรูปแบบตามเกณฑ์ Level 4 แต่ควรลองตามลำดับนี้ก่อนยอมแพ้:
+แอป **ยังทำงานครบ 5 บริการ** และจะไล่ตามลำดับ **Bedrock → Google Gemini (ถ้าตั้ง key) → rule-based** (ป้ายบนการ์ดจะระบุว่าผลมาจากชั้นไหน + มีคำอธิบายสีเหลืองท้ายการ์ด) ซึ่งยังนับเป็นระบบอัตโนมัติเต็มรูปแบบตามเกณฑ์ Level 4 แต่ควรลองตามลำดับนี้ก่อนยอมแพ้:
+
+**ลำดับที่ 0 — เปิด AI สำรอง Google Gemini (ไม่บังคับ)**
+
+ถ้าแล็บนี้บล็อก Bedrock จริง ๆ และต้องการให้เดโมได้ผลจาก AI จริง: ขอ key ฟรีที่ [Google AI Studio](https://aistudio.google.com/apikey) แล้วรัน
+
+```bash
+bash scripts/deploy_learnerlab.sh --gemini-key AIza...
+```
+
+หรือรัน `bash scripts/deploy_learnerlab.sh` เฉย ๆ แล้ววาง key เมื่อสคริปต์ถาม — **ไม่มีการเพิ่ม AWS service** (key ส่งเป็น CloudFormation Parameter `NoEcho`) และระบบจะลองซ้ำ/สลับโมเดลสำรองเองเมื่อ Google ตอบ 503
 
 **ลำดับที่ 1 — ลอง cross-region inference profile**
 

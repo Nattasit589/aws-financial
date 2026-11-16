@@ -93,6 +93,8 @@ python3 scripts/preflight.py
 - ถ้าเป็น Anthropic Claude ต้องผ่าน first-time-use form ของ Anthropic
 - region ตรงกับที่ deploy
 
+> **ถ้าแก้ไม่ได้และยังอยากให้เดโมได้ผลจาก AI จริง:** แอปมี **AI สำรอง Google Gemini** ในตัว (ไม่เพิ่ม AWS service, ไม่ต้องแก้โค้ด) — ขอ key ฟรีที่ [Google AI Studio](https://aistudio.google.com/apikey) แล้วรัน `bash scripts/deploy_learnerlab.sh` (สคริปต์จะถาม key เอง) หรือระบุ `--gemini-key AIza...` ระบบจะไล่ลำดับ **Bedrock → Gemini → กฎเทคนิค** และป้ายบนการ์ดจะบอกว่าผลมาจากชั้นไหน — ถ้า Google ตอบ 503/429 ระบบลองซ้ำและสลับไปโมเดลสำรองให้อัตโนมัติ
+
 ---
 
 ## 4. เตรียมโค้ดโปรเจกต์
