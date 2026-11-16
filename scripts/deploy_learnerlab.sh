@@ -28,14 +28,18 @@ usage() {
   cat <<'EOF'
 วิธีใช้: bash scripts/deploy_learnerlab.sh [options]
 
-  --email <อีเมล>      อีเมลรับรายงาน SNS (ไม่ใส่ก็ได้)
+  --email <อีเมล>      อีเมลรับรายงาน SNS (ไม่ใส่ก็ได้ — สคริปต์จะถามให้)
   --stack <ชื่อ>       ชื่อ CloudFormation stack (ค่าเริ่มต้น: ai-equity-copilot)
   --region <region>    region ของ Learner Lab (ค่าเริ่มต้น: us-east-1)
   --model <model-id>   โมเดล Bedrock (ค่าเริ่มต้น: amazon.nova-lite-v1:0)
   --gemini-key <key>   API key จาก Google AI Studio — ใช้เป็น AI สำรองเมื่อ Bedrock ถูกบล็อก
+                       (ไม่ใส่ก็ได้ — สคริปต์จะถามให้ และกด Enter ข้ามได้)
   --skip-preflight     ข้ามการตรวจสิทธิ์ก่อน deploy
   --delete             ลบ stack ทั้งหมด (ถามยืนยันครั้งเดียว)
   -h, --help           แสดงข้อความนี้
+
+ถ้าไม่ใส่อะไรเลย (bash scripts/deploy_learnerlab.sh) สคริปต์จะถามอีเมล
+และ Gemini API key ให้กรอกทีละบรรทัด — ไม่ต้องแก้คำสั่งเอง
 
 หมายเหตุ: ต้อง Start Lab ให้สถานะเขียวก่อน (credential อายุ 4 ชั่วโมง)
 EOF
@@ -54,6 +58,21 @@ while [[ $# -gt 0 ]]; do
     *) echo "ไม่รู้จักออปชัน: $1 (ใช้ --help ดูตัวเลือก)"; exit 2 ;;
   esac
 done
+
+# ---------------------------------------------------------------- prompts
+# ให้ผู้ใช้ก๊อปคำสั่งเดียวจาก QUICKSTART ได้เลย — ค่าที่ต้องใช้สคริปต์ถามเอง
+# (ถามเฉพาะเมื่อรันใน terminal จริง และยังไม่ได้ส่งค่ามาทาง flag/env)
+if [[ "$DO_DELETE" == "0" && -t 0 ]]; then
+  if [[ -z "$EMAIL" ]]; then
+    read -r -p "อีเมลรับแจ้งเตือน SNS (เว้นว่างได้): " EMAIL || true
+  fi
+  if [[ -z "$GEMINI_KEY" ]]; then
+    printf '%s\n' "Gemini API key = AI สำรอง ใช้เมื่อ Learner Lab บล็อก Bedrock"
+    printf '%s\n' "  ขอฟรีที่ https://aistudio.google.com/apikey — ไม่มีก็กด Enter ข้ามได้"
+    read -r -p "Gemini API key (เว้นว่างได้): " GEMINI_KEY || true
+  fi
+  printf '\n'
+fi
 
 info() { printf '\n\033[1;36m==> %s\033[0m\n' "$1"; }
 ok()   { printf '\033[1;32m    OK\033[0m %s\n' "$1"; }
