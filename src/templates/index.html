@@ -505,6 +505,7 @@
   function sourceBadge(result) {
     if (result.cache_hit) return '<span class="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[10px] text-sky-300">Smart Cache</span>';
     if (result.source === "bedrock") return '<span class="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-300">Live Bedrock AI</span>';
+    if (result.source === "gemini_fallback") return '<span class="rounded-full border border-violet-500/40 bg-violet-500/10 px-2 py-0.5 text-[10px] text-violet-300">AI สำรอง (Gemini)</span>';
     return '<span class="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-300">Rule-based Fallback</span>';
   }
 

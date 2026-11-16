@@ -18,6 +18,19 @@ Parameters:
     Default: amazon.nova-lite-v1:0
     Description: Model ID บน Amazon Bedrock ที่บัญชีนี้เรียกได้
 
+  GeminiApiKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: >-
+      (ทางเลือก) API key จาก Google AI Studio — Learner Lab มักบล็อกสิทธิ์ Bedrock
+      ใส่ค่านี้เพื่อให้ยังได้ผลวิเคราะห์จาก AI จริง เว้นว่างได้
+
+  GeminiModelId:
+    Type: String
+    Default: gemini-3.5-flash-lite
+    Description: ชื่อโมเดล Gemini ที่ใช้เป็น AI สำรอง
+
   CacheTtlSeconds:
     Type: Number
     Default: 3600
@@ -96,6 +109,8 @@ Resources:
           PORTFOLIO_TABLE: !Ref PortfolioTable
           SNS_TOPIC_ARN: !Ref AlertTopic
           BEDROCK_MODEL_ID: !Ref BedrockModelId
+          GEMINI_API_KEY: !Ref GeminiApiKey
+          GEMINI_MODEL_ID: !Ref GeminiModelId
           CACHE_TTL_SECONDS: !Ref CacheTtlSeconds
           USD_TO_THB: "36.0"
           MAX_SYMBOLS: "10"

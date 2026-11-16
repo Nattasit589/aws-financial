@@ -18,6 +18,19 @@ Parameters:
     Default: amazon.nova-lite-v1:0
     Description: Model ID บน Amazon Bedrock (เช่น amazon.nova-lite-v1:0 หรือ anthropic.claude-3-haiku-20240307-v1:0)
 
+  GeminiApiKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: >-
+      (ทางเลือก) API key จาก Google AI Studio ใช้เป็น AI สำรองเมื่อ Bedrock เรียกไม่ได้
+      เว้นว่างได้ — ถ้าไม่ตั้งค่า ระบบจะใช้กฎเทคนิคแทน
+
+  GeminiModelId:
+    Type: String
+    Default: gemini-3.5-flash-lite
+    Description: ชื่อโมเดล Gemini ที่ใช้เป็น AI สำรอง (เช็กชื่อที่ใช้ได้ใน AI Studio)
+
   CacheTtlSeconds:
     Type: Number
     Default: 3600
@@ -86,6 +99,8 @@ Resources:
           PORTFOLIO_TABLE: !Ref PortfolioTable
           SNS_TOPIC_ARN: !Ref AlertTopic
           BEDROCK_MODEL_ID: !Ref BedrockModelId
+          GEMINI_API_KEY: !Ref GeminiApiKey
+          GEMINI_MODEL_ID: !Ref GeminiModelId
           CACHE_TTL_SECONDS: !Ref CacheTtlSeconds
           USD_TO_THB: "36.0"
           MAX_SYMBOLS: "10"

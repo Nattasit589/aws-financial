@@ -85,6 +85,33 @@
 2. เปิด **Amazon Bedrock** → ทดสอบใน **Playground** ด้วยโมเดล `amazon.nova-lite-v1:0`
 3. ถ้าเรียกผ่าน CLI ให้รัน `python3 scripts/preflight.py` (สคริปต์จะทดสอบเรียกโมเดลจริง 1 ครั้งและบอกผลชัดเจน)
 4. ถ้าใช้ **Learner Lab** แล้ว Bedrock ถูกบล็อก: แอปยังใช้งานได้ครบ แต่ผลวิเคราะห์จะมาจาก rule-based fallback (ป้ายบนการ์ดจะระบุ) — ควรแจ้งอาจารย์หรือผู้ดูแลแล็บ
+5. **ถ้า Bedrock ใช้ไม่ได้ และอยากให้ยังได้ผลจาก AI จริง:** ขอ API key ฟรีที่ [Google AI Studio](https://aistudio.google.com/apikey) แล้วใส่ตอน deploy (ดูขั้นตอนที่ 1.5)
+
+### ขั้นตอนที่ 1.5 (ทางเลือก): ตั้งค่า AI สำรอง (Google Gemini)
+
+ระบบเลือกผู้ให้บริการ AI เป็นลำดับ 3 ชั้น เพื่อให้เดโมไม่ล้มไม่ว่าสิทธิ์ AWS จะเป็นอย่างไร
+
+| ลำดับ | ผู้ให้บริการ | เงื่อนไขการใช้งาน |
+|---|---|---|
+| 1 | **Amazon Bedrock** (`amazon.nova-lite-v1:0`) | ใช้เป็นหลักเสมอ (นับเป็น 1 ใน 5 AWS service) |
+| 2 | **Google Gemini** (Google AI Studio) | ใช้เมื่อ Bedrock ถูกปฏิเสธสิทธิ์ **และ** มีการตั้งค่า `GeminiApiKey` |
+| 3 | **Rule-based** (RSI/SMA/ความผันผวน) | ใช้เมื่อสองชั้นแรกใช้ไม่ได้ — แอปยังทำงานครบ |
+
+**วิธีใส่ API key (ไม่ต้องเพิ่ม AWS service ใด ๆ):** key ถูกส่งเข้าเป็น **Parameter ของ CloudFormation/SAM** (`NoEcho: true` เพื่อไม่ให้แสดงใน console) แล้ว SAM ฉีดเป็น environment variable `GEMINI_API_KEY` ให้ Lambda — ไม่มีการเก็บ key ไว้ใน git
+
+```bash
+# ครั้งแรก: ตอบ Parameter GeminiApiKey ด้วย key จาก AI Studio (หรือ Enter เพื่อข้าม)
+sam deploy --guided
+
+# deploy ซ้ำโดยไม่ต้องกรอกใหม่
+sam deploy --parameter-overrides GeminiApiKey=AIza... AlertEmail=you@example.com
+```
+
+> **ข้อควรระวัง:** repo นี้เป็น public — ห้ามใส่ key ในโค้ด ไฟล์ `.env` ที่ commit หรือภาพ screenshot และควรระบุในรายงานว่า key อยู่ใน Lambda environment variable ซึ่งผู้มีสิทธิ์ในบัญชี AWS อ่านได้
+>
+> **ต้นทุน:** โมเดล `gemini-3.5-flash-lite` อยู่ในโควตาฟรีของ Google (ไม่คิดเงินเมื่อไม่ผูกบิลลิ่ง) — ตัวเลชในช่อง “ต้นทุน AI” คำนวณจากราคาปกติของ Google เผื่อกรณีถูกคิดเงินจริง
+>
+> **ข้อมูลออกนอก AWS:** ในโหมด AI สำรอง ตัวเลขหุ้นและหัวข่าวจะถูกส่งไปที่ Google ควรระบุเป็นข้อจำกัดด้านความเป็นส่วนตัวในรายงาน
 
 ### ขั้นตอนที่ 2: ติดตั้งระบบทั้งหมดด้วยคำสั่งเดียว (AWS SAM Deploy)
 เปิด Terminal ในโฟลเดอร์โปรเจกต์ แล้วรันคำสั่งต่อไปนี้ตามลำดับ:
@@ -113,6 +140,7 @@ sam deploy --guided
 - **AWS Region:** `us-east-1` (หรือ Region เดียวกับที่เช็ก Bedrock ในขั้นตอนที่ 1)
 - **Parameter AlertEmail:** กรอกอีเมลจริงของคุณเพื่อใช้ทดสอบรับแจ้งเตือนจาก Amazon SNS
 - **Parameter BedrockModelId:** กด Enter เพื่อใช้ค่าเริ่มต้น (หรือระบุ Model ID ที่เปิดไว้)
+- **Parameter GeminiApiKey:** ถ้ายังไม่มี key ให้กด Enter (เว้นว่าง) — ถ้ามี ให้วาง key จาก Google AI Studio เพื่อเปิดใช้ AI สำรอง
 - **Confirm changes before deploy:** `N`
 - **Disable rollback:** `N`
 - **StockCopilotFunction (หรือ StockCopilotFunctionUrl) has no authentication. Is this okay?:** พิมพ์ `y` แล้วกด Enter (เพื่อให้เปิดเข้าหน้าเว็บผ่าน Function URL ได้)
@@ -181,7 +209,7 @@ git push -u origin main
 
 ### ข้อจำกัดที่ต้องรู้ก่อนเดโม
 
-- บน **AWS Academy Learner Lab** สิทธิ์ Bedrock ขึ้นกับแล็บ: ถ้าเรียกไม่ผ่าน แอปยังทำงานครบ 5 บริการ แต่ผลวิเคราะห์จะมาจาก **rule-based fallback** (ป้ายบนการ์ดระบุชัดเจน) — ควรแจ้งอาจารย์ล่วงหน้า
+- บน **AWS Academy Learner Lab** สิทธิ์ Bedrock ขึ้นกับแล็บ: ถ้าเรียกไม่ผ่าน แอปยังทำงานครบ 5 บริการ และจะใช้ **AI สำรอง Google Gemini** ก่อน (เมื่อตั้งค่า `GeminiApiKey` ไว้) ถ้าไม่มี key จึงตกไปที่ **rule-based fallback** — ป้ายบนการ์ดระบุชัดเจนทั้งสองกรณี ควรแจ้งอาจารย์ล่วงหน้า
 - ข้อมูลราคา/ข่าวมาจาก `yfinance` และ Google News แบบไม่เป็นทางการ: อาจดีเลย์หรือถูกจำกัดอัตราการเรียกได้ในบางช่วง ถ้าดึงข้อมูลไม่ได้ ระบบจะแจ้งเป็นภาษาไทยรายหุ้น ไม่ทำให้ทั้งพอร์ตล่ม
 
 ---

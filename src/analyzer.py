@@ -3,6 +3,11 @@
 
 ใช้ ``bedrock-runtime.converse`` ซึ่งเป็น API กลางที่ใช้โค้ดชุดเดียวกันได้ทั้ง
 ตระกูล Amazon Nova และ Anthropic Claude จึงสลับโมเดลผ่าน Parameter ได้โดยไม่ต้องแก้โค้ด
+
+AI สำรอง (ชั้นที่ 2): ถ้า Bedrock ถูกปฏิเสธสิทธิ์ (เช่น LabRole ของ Learner Lab) และ
+ผู้ดูแลตั้งค่า ``GEMINI_API_KEY`` ไว้ ระบบจะเรียก Google Gemini ผ่าน stdlib ``urllib``
+แทน — ไม่ต้องเพิ่ม dependency ใหม่ และไม่ต้องเพิ่ม AWS service ใด ๆ
+ถ้ายังใช้ไม่ได้อีกจะตกไปที่ ``rule_based_analysis`` เพื่อไม่ให้พอร์ตทั้งก้อนล้ม
 """
 
 from __future__ import annotations
@@ -10,9 +15,17 @@ from __future__ import annotations
 import json
 import os
 import re
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 
 MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "amazon.nova-lite-v1:0")
+
+# AI สำรอง (Google AI Studio) — ใช้เฉพาะเมื่อ Bedrock เรียกไม่ได้และมีการตั้งค่า key
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL_ID", "gemini-3.5-flash-lite").strip()
+GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models"
+GEMINI_TIMEOUT = 25
 USD_TO_THB = float(os.environ.get("USD_TO_THB", "36.0"))
 MAX_OUTPUT_TOKENS = 1200
 VALID_PERSONAS = ("dividend", "momentum")
@@ -25,6 +38,11 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
     "amazon.nova-pro": (0.80, 3.20),
     "anthropic.claude-3-haiku": (0.25, 1.25),
     "anthropic.claude-3-5-haiku": (0.80, 4.00),
+    # ราคาปกติของ Gemini (Google pricing, พ.ย. 2026) — โมเดล Flash/Flash-Lite มีโควตาฟรี
+    "gemini-3.5-flash-lite": (0.30, 2.50),
+    "gemini-3.1-flash-lite": (0.25, 1.50),
+    "gemini-3.8-flash": (0.75, 3.75),
+    "gemini-3.6-flash": (0.75, 3.75),
 }
 
 SYSTEM_PROMPTS: dict[str, str] = {
@@ -481,36 +499,140 @@ def _invoke_bedrock(prompt: str, persona: str) -> tuple[str, dict]:
     return "".join(text_parts), {"input": input_tokens, "output": output_tokens}
 
 
+def _invoke_gemini(prompt: str, persona: str) -> tuple[str, dict]:
+    """เรียก Google Gemini (Generative Language API) ด้วย urllib จาก stdlib
+    เพื่อไม่ให้ต้องเพิ่ม dependency ใหม่ในแพ็กเกจ Lambda."""
+    if not GEMINI_API_KEY:
+        raise RuntimeError("ยังไม่ได้ตั้งค่า GEMINI_API_KEY")
+
+    payload = {
+        "system_instruction": {"parts": [{"text": SYSTEM_PROMPTS[persona]}]},
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.3,
+            "topP": 0.9,
+            "maxOutputTokens": MAX_OUTPUT_TOKENS,
+            "responseMimeType": "application/json",
+        },
+    }
+    request = urllib.request.Request(
+        f"{GEMINI_ENDPOINT}/{GEMINI_MODEL}:generateContent",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "x-goog-api-key": GEMINI_API_KEY,
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=GEMINI_TIMEOUT) as response:
+        data = json.loads(response.read().decode("utf-8"))
+
+    text_parts: list[str] = []
+    for candidate in data.get("candidates") or []:
+        content = (candidate or {}).get("content") or {}
+        for part in content.get("parts") or []:
+            if isinstance(part, dict) and "text" in part:
+                text_parts.append(str(part["text"]))
+
+    text = "".join(text_parts)
+    if not text.strip():
+        raise RuntimeError("Gemini ไม่ได้ส่งข้อความกลับมา")
+
+    usage = data.get("usageMetadata") or {}
+    tokens = {
+        "input": int(usage.get("promptTokenCount") or 0),
+        "output": int(usage.get("candidatesTokenCount") or 0),
+    }
+    return text, tokens
+
+
+def _gemini_short_error(exc: Exception) -> str:
+    if isinstance(exc, urllib.error.HTTPError):
+        try:
+            detail = exc.read().decode("utf-8", "ignore")
+        except Exception:  # noqa: BLE001 - อ่าน body ไม่ได้ก็ไม่เป็นไร
+            detail = ""
+        if "API key not valid" in detail or "API_KEY_INVALID" in detail:
+            return "API key ของ Gemini ไม่ถูกต้อง"
+        if exc.code in (401, 403):
+            return "API key ของ Gemini ไม่มีสิทธิ์ใช้งาน"
+        if exc.code == 429:
+            return "Gemini ถูกจำกัดจำนวนการเรียกใช้ชั่วคราว"
+        if exc.code == 404:
+            return "ไม่พบโมเดล Gemini ที่ระบุ"
+        return f"Gemini ตอบกลับ HTTP {exc.code}"
+    if isinstance(exc, urllib.error.URLError):
+        return "เชื่อมต่อ Gemini ไม่ได้ (อาจถูกบล็อกเน็ตขาออก)"
+    text = str(exc).strip().replace("\n", " ")
+    return text[:120] if text else exc.__class__.__name__
+
+
+def _ai_result(
+    text: str,
+    tokens: dict,
+    persona: str,
+    market: dict,
+    source: str,
+    model_id: str,
+    note: str,
+) -> dict:
+    payload = _extract_json(text)
+    ai = _normalize_ai(payload, persona, market)
+    ai["risk_level"], ai["risk_reasons"] = _assess_risk(market, ai)
+    return {
+        "ai": ai,
+        "source": source,
+        "model_id": model_id,
+        "cost": calculate_cost(tokens["input"], tokens["output"], model_id),
+        "note": note,
+        "analyzed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+
+
 def analyze_stock(market: dict, persona: str = "dividend") -> dict:
-    """วิเคราะห์หุ้น 1 ตัว คืนผลลัพธ์ AI + ต้นทุน token (มี fallback ถ้า Bedrock ใช้ไม่ได้)."""
+    """วิเคราะห์หุ้น 1 ตัว คืนผลลัพธ์ AI + ต้นทุน token
+
+    ลำดับ: 1) Amazon Bedrock → 2) Google Gemini (ถ้าตั้งค่า key) → 3) กฎเทคนิค
+    ทุกชั้นห่อ try/except เพื่อไม่ให้พอร์ตทั้งก้อนล้ม
+    """
     persona = persona if persona in VALID_PERSONAS else "dividend"
     prompt = build_prompt(market, persona)
+    problems: list[str] = []
 
     try:
         text, tokens = _invoke_bedrock(prompt, persona)
-        payload = _extract_json(text)
-        ai = _normalize_ai(payload, persona, market)
-        ai["risk_level"], ai["risk_reasons"] = _assess_risk(market, ai)
-        return {
-            "ai": ai,
-            "source": "bedrock",
-            "model_id": MODEL_ID,
-            "cost": calculate_cost(tokens["input"], tokens["output"]),
-            "note": "",
-            "analyzed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        }
+        return _ai_result(text, tokens, persona, market, "bedrock", MODEL_ID, "")
     except Exception as exc:  # noqa: BLE001 - ต้องไม่ทำให้ทั้งพอร์ตล้ม
-        short_reason = _short_error(exc)
-        ai = rule_based_analysis(market, persona, short_reason)
-        ai["risk_level"], ai["risk_reasons"] = _assess_risk(market, ai)
-        return {
-            "ai": ai,
-            "source": "rule_fallback",
-            "model_id": MODEL_ID,
-            "cost": calculate_cost(0, 0),
-            "note": f"Bedrock ใช้งานไม่ได้ในขณะนี้ ({short_reason}) ระบบจึงสรุปด้วยกฎเทคนิคให้ก่อน",
-            "analyzed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        }
+        bedrock_reason = _short_error(exc)
+        problems.append(f"Bedrock: {bedrock_reason}")
+
+    if GEMINI_API_KEY:
+        try:
+            text, tokens = _invoke_gemini(prompt, persona)
+            return _ai_result(
+                text,
+                tokens,
+                persona,
+                market,
+                "gemini_fallback",
+                GEMINI_MODEL,
+                f"Bedrock ใช้งานไม่ได้ ({bedrock_reason}) จึงใช้ AI สำรอง Google Gemini ในรอบนี้",
+            )
+        except Exception as exc:  # noqa: BLE001 - ลอง AI สำรองแล้วยังไม่ได้ก็ใช้กฎเทคนิค
+            problems.append(f"Gemini: {_gemini_short_error(exc)}")
+    else:
+        problems.append("Gemini: ยังไม่ได้ตั้งค่า GEMINI_API_KEY")
+
+    ai = rule_based_analysis(market, persona, "; ".join(problems))
+    ai["risk_level"], ai["risk_reasons"] = _assess_risk(market, ai)
+    return {
+        "ai": ai,
+        "source": "rule_fallback",
+        "model_id": MODEL_ID,
+        "cost": calculate_cost(0, 0),
+        "note": f"AI ยังใช้งานไม่ได้ ({'; '.join(problems)}) ระบบจึงสรุปด้วยกฎเทคนิคให้ก่อน",
+        "analyzed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
 
 
 def _short_error(exc: Exception) -> str:
