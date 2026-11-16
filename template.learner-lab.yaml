@@ -51,7 +51,9 @@ Globals:
   Function:
     Runtime: python3.12
     Handler: app.handler
-    Timeout: 120
+    # 300 วิ: พอร์ตเต็ม 10 หุ้นแบ่งเป็น 2 รอบ (MAX_WORKERS=5) และขั้น Gemini
+    # มี retry + โมเดลสำรอง ซึ่งกรณีแย่สุดใช้เวลารวมได้เกิน 120 วิ
+    Timeout: 300
     MemorySize: 512
     Architectures:
       - x86_64

@@ -352,7 +352,9 @@ def run_scheduled_report() -> dict:
     for workspace_id in workspaces:
         try:
             workspace = db.get_watchlist(workspace_id)
-            results = _collect_results(workspace["workspace_id"], workspace["persona"], False)
+            # รอบอัตโนมัติต้องใช้ข้อมูลปิดตลาดจริง จึงบังคับดึงสดเสมอ
+            # (ถ้าใช้ cache ผลที่วิเคราะห์ก่อนตลาดปิดอาจถูกส่งออกไปเป็นรายงานปิดวัน)
+            results = _collect_results(workspace["workspace_id"], workspace["persona"], True)
             summary = _summary(results)
             analyzed += len(results)
             changed += summary["counts"]["BUY"] + summary["counts"]["SELL"]
