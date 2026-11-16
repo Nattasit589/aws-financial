@@ -109,6 +109,6 @@ rm -rf /tmp/aws-financial /tmp/pip-cache
 | `Lambda ขึ้น ImportError: fastapi` | deploy ด้วย template ต้นฉบับ → build ใหม่แล้ว deploy ด้วย `.aws-sam/build/template.yaml` |
 | `No space left on device` | ยังทำงานใน home directory → ต้องอยู่ใต้ `/tmp` ตามขั้นตอนที่ 1 |
 | preflight ❌ Bedrock | แล็บบล็อกสิทธิ์ — ใช้ `--skip-preflight` แล้วใส่ `--gemini-key` เพื่อใช้ AI สำรอง (หรือเดโมด้วย rule-based fallback) |
-| note ขึ้นว่า `Gemini: ... HTTP 503` | Google แจ้งว่าโมเดลไม่พร้อมใช้งานชั่วคราว — โค้ดลองซ้ำ 2 ครั้งแล้วสลับไป `gemini-3.8-flash` / `gemini-3.1-flash-lite` ให้เองอยู่แล้ว ถ้ายังไม่ได้ให้รอ 1-2 นาทีแล้วกด “บังคับวิเคราะห์ใหม่” อีกครั้ง |
+| note ขึ้นว่า `Gemini: ... HTTP 503` | Google แจ้งว่าโมเดลไม่พร้อมใช้งานชั่วคราว — โค้ดลองซ้ำอีก 1 ครั้ง (รวม 2 ครั้ง) แล้วสลับไป `gemini-3.8-flash` / `gemini-3.1-flash-lite` ให้เองอยู่แล้ว ถ้ายังไม่ได้ให้รอ 1-2 นาทีแล้วกด “บังคับวิเคราะห์ใหม่” อีกครั้ง |
 | ขึ้นแค่ป้าย **Rule-based Fallback** ไม่ขึ้น **AI สำรอง (Gemini)** | ตอนสคริปต์ถาม `Gemini API key` ไม่ได้วาง key (หรือกด Enter ข้าม), key ไม่ถูกต้อง/หมดสิทธิ์ หรือยังไม่ได้กด “บังคับวิเคราะห์ใหม่” (ผลเก่ายังอยู่ใน Smart Cache) |
 | สคริปต์ไม่ถามอีเมล/Gemini key | รันโดยไม่มี terminal จริง หรือส่งค่ามาแล้วผ่าน flag (`--email`, `--gemini-key`) / env (`ALERT_EMAIL`, `GEMINI_API_KEY`) — ใส่ flag ตรง ๆ ได้ตามหัวข้อออปชันเสริม |
