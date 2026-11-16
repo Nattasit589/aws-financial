@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -26,6 +27,10 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL_ID", "gemini-3.5-flash-lite").strip()
 GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models"
 GEMINI_TIMEOUT = 25
+# 503/429 จาก Google เป็นอาการชั่วคราวบ่อยครั้ง: ลองซ้ำแล้วสลับโมเดลสำรองให้อัตโนมัติ
+GEMINI_RETRY_DELAY = 1.5
+GEMINI_RETRYABLE = (429, 500, 502, 503, 504)
+GEMINI_BACKUP_MODELS = ("gemini-3.8-flash", "gemini-3.1-flash-lite")
 USD_TO_THB = float(os.environ.get("USD_TO_THB", "36.0"))
 MAX_OUTPUT_TOKENS = 1200
 VALID_PERSONAS = ("dividend", "momentum")
@@ -499,12 +504,9 @@ def _invoke_bedrock(prompt: str, persona: str) -> tuple[str, dict]:
     return "".join(text_parts), {"input": input_tokens, "output": output_tokens}
 
 
-def _invoke_gemini(prompt: str, persona: str) -> tuple[str, dict]:
-    """เรียก Google Gemini (Generative Language API) ด้วย urllib จาก stdlib
+def _gemini_request(prompt: str, persona: str, model: str) -> tuple[str, dict]:
+    """เรียก Google Gemini (Generative Language API) 1 ครั้งด้วย urllib จาก stdlib
     เพื่อไม่ให้ต้องเพิ่ม dependency ใหม่ในแพ็กเกจ Lambda."""
-    if not GEMINI_API_KEY:
-        raise RuntimeError("ยังไม่ได้ตั้งค่า GEMINI_API_KEY")
-
     payload = {
         "system_instruction": {"parts": [{"text": SYSTEM_PROMPTS[persona]}]},
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
@@ -516,7 +518,7 @@ def _invoke_gemini(prompt: str, persona: str) -> tuple[str, dict]:
         },
     }
     request = urllib.request.Request(
-        f"{GEMINI_ENDPOINT}/{GEMINI_MODEL}:generateContent",
+        f"{GEMINI_ENDPOINT}/{model}:generateContent",
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "Content-Type": "application/json",
@@ -528,7 +530,9 @@ def _invoke_gemini(prompt: str, persona: str) -> tuple[str, dict]:
         data = json.loads(response.read().decode("utf-8"))
 
     text_parts: list[str] = []
+    finish_reason = ""
     for candidate in data.get("candidates") or []:
+        finish_reason = (candidate or {}).get("finishReason") or finish_reason
         content = (candidate or {}).get("content") or {}
         for part in content.get("parts") or []:
             if isinstance(part, dict) and "text" in part:
@@ -536,7 +540,11 @@ def _invoke_gemini(prompt: str, persona: str) -> tuple[str, dict]:
 
     text = "".join(text_parts)
     if not text.strip():
-        raise RuntimeError("Gemini ไม่ได้ส่งข้อความกลับมา")
+        blocked = (data.get("promptFeedback") or {}).get("blockReason")
+        reason = f"finishReason: {finish_reason or '-'}"
+        if blocked:
+            reason += f", blockReason: {blocked}"
+        raise RuntimeError(f"Gemini ไม่ได้ส่งข้อความกลับมา ({reason})")
 
     usage = data.get("usageMetadata") or {}
     tokens = {
@@ -544,6 +552,43 @@ def _invoke_gemini(prompt: str, persona: str) -> tuple[str, dict]:
         "output": int(usage.get("candidatesTokenCount") or 0),
     }
     return text, tokens
+
+
+def _invoke_gemini(prompt: str, persona: str) -> tuple[str, dict, str]:
+    """เรียก Gemini แบบทนต่อ 503/429: ลองซ้ำ 1 ครั้งแล้วสลับไปโมเดลสำรองอัตโนมัติ
+
+    คืน ``(text, tokens, model)`` โดย ``model`` คือโมเดลที่ตอบสำเร็จจริง
+    (อาจไม่ใช่ ``GEMINI_MODEL`` ถ้าตัวหลักไม่พร้อมใช้งาน)
+    """
+    if not GEMINI_API_KEY:
+        raise RuntimeError("ยังไม่ได้ตั้งค่า GEMINI_API_KEY")
+
+    models = [GEMINI_MODEL] + [m for m in GEMINI_BACKUP_MODELS if m != GEMINI_MODEL]
+    errors: list[tuple[str, str]] = []
+
+    for index, model in enumerate(models):
+        # โมเดลหลักได้ลองซ้ำ (503 มักเป็นอาการชั่วคราว) โมเดลสำรองลองครั้งเดียว
+        attempts = 2 if index == 0 else 1
+        for attempt in range(attempts):
+            try:
+                text, tokens = _gemini_request(prompt, persona, model)
+                return text, tokens, model
+            except urllib.error.HTTPError as exc:
+                if exc.code in (400, 401, 403):
+                    raise  # key หรือสิทธิ์ผิด — เปลี่ยนโมเดลก็ไม่ช่วย
+                errors.append((model, _gemini_short_error(exc)))
+                if exc.code in GEMINI_RETRYABLE and attempt + 1 < attempts:
+                    time.sleep(GEMINI_RETRY_DELAY)
+                    continue
+                break
+            except Exception as exc:  # noqa: BLE001 - เก็บเหตุผลไว้แล้วลองโมเดลถัดไป
+                errors.append((model, _gemini_short_error(exc)))
+                break
+
+    distinct = {message for _, message in errors}
+    if len(distinct) == 1:
+        raise RuntimeError(distinct.pop())
+    raise RuntimeError("; ".join(f"{model}: {message}" for model, message in errors))
 
 
 def _gemini_short_error(exc: Exception) -> str:
@@ -558,6 +603,8 @@ def _gemini_short_error(exc: Exception) -> str:
             return "API key ของ Gemini ไม่มีสิทธิ์ใช้งาน"
         if exc.code == 429:
             return "Gemini ถูกจำกัดจำนวนการเรียกใช้ชั่วคราว"
+        if exc.code in (500, 502, 503, 504):
+            return "โมเดล Gemini ไม่พร้อมใช้งานชั่วคราว (Google ตอบ 5xx)"
         if exc.code == 404:
             return "ไม่พบโมเดล Gemini ที่ระบุ"
         return f"Gemini ตอบกลับ HTTP {exc.code}"
@@ -608,16 +655,11 @@ def analyze_stock(market: dict, persona: str = "dividend") -> dict:
 
     if GEMINI_API_KEY:
         try:
-            text, tokens = _invoke_gemini(prompt, persona)
-            return _ai_result(
-                text,
-                tokens,
-                persona,
-                market,
-                "gemini_fallback",
-                GEMINI_MODEL,
-                f"Bedrock ใช้งานไม่ได้ ({bedrock_reason}) จึงใช้ AI สำรอง Google Gemini ในรอบนี้",
-            )
+            text, tokens, gemini_model = _invoke_gemini(prompt, persona)
+            note = f"Bedrock ใช้งานไม่ได้ ({bedrock_reason}) จึงใช้ AI สำรอง Google Gemini ในรอบนี้"
+            if gemini_model != GEMINI_MODEL:
+                note += f" (สลับไปโมเดล {gemini_model} เพราะ {GEMINI_MODEL} ไม่พร้อมใช้งาน)"
+            return _ai_result(text, tokens, persona, market, "gemini_fallback", gemini_model, note)
         except Exception as exc:  # noqa: BLE001 - ลอง AI สำรองแล้วยังไม่ได้ก็ใช้กฎเทคนิค
             problems.append(f"Gemini: {_gemini_short_error(exc)}")
     else:

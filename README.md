@@ -94,7 +94,7 @@
 | ลำดับ | ผู้ให้บริการ | เงื่อนไขการใช้งาน |
 |---|---|---|
 | 1 | **Amazon Bedrock** (`amazon.nova-lite-v1:0`) | ใช้เป็นหลักเสมอ (นับเป็น 1 ใน 5 AWS service) |
-| 2 | **Google Gemini** (Google AI Studio) | ใช้เมื่อ Bedrock ถูกปฏิเสธสิทธิ์ **และ** มีการตั้งค่า `GeminiApiKey` |
+| 2 | **Google Gemini** (Google AI Studio) | ใช้เมื่อ Bedrock ถูกปฏิเสธสิทธิ์ **และ** มีการตั้งค่า `GeminiApiKey` — ถ้า Google ตอบ 503/429 ระบบลองซ้ำเองแล้วสลับโมเดลสำรอง (`gemini-3.8-flash`, `gemini-3.1-flash-lite`) ให้อัตโนมัติ |
 | 3 | **Rule-based** (RSI/SMA/ความผันผวน) | ใช้เมื่อสองชั้นแรกใช้ไม่ได้ — แอปยังทำงานครบ |
 
 **วิธีใส่ API key (ไม่ต้องเพิ่ม AWS service ใด ๆ):** key ถูกส่งเข้าเป็น **Parameter ของ CloudFormation/SAM** (`NoEcho: true` เพื่อไม่ให้แสดงใน console) แล้ว SAM ฉีดเป็น environment variable `GEMINI_API_KEY` ให้ Lambda — ไม่มีการเก็บ key ไว้ใน git

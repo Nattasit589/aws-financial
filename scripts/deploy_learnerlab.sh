@@ -171,6 +171,17 @@ else
 fi
 ok "build เสร็จ"
 
+# ---------------------------------------------------------------- key เดิม
+# กันคีย์หาย: ถ้าครั้งนี้ไม่ได้ใส่ key (กด Enter ตอนถูกถาม) ให้ใช้ค่าที่ deploy อยู่แล้วต่อ
+if [[ -z "$GEMINI_KEY" ]]; then
+  PREV_KEY="$(aws lambda get-function-configuration --function-name "$STACK_NAME-app" \
+    --query 'Environment.Variables.GEMINI_API_KEY' --output text 2>/dev/null || true)"
+  if [[ -n "$PREV_KEY" && "$PREV_KEY" != "None" ]]; then
+    GEMINI_KEY="$PREV_KEY"
+    ok "พบ Gemini API key เดิมบน Lambda — ใช้ค่าเดิมต่อ ไม่ต้องกรอกซ้ำ"
+  fi
+fi
+
 # ---------------------------------------------------------------- deploy
 info "sam deploy → stack: $STACK_NAME"
 sam deploy \
@@ -199,8 +210,7 @@ printf '\n\033[1;32mเรียบร้อย! เปิดหน้าเว�
 if [[ -n "$EMAIL" ]]; then
   printf '\nอย่าลืมกด Confirm subscription ในอีเมล (%s) ก่อนกดส่งรายงาน\n' "$EMAIL"
 fi
-if [[ -z "$GEMINI_KEY" ]]; then
-  printf '\nยังไม่ได้ใส่ --gemini-key: ถ้า Bedrock ถูกบล็อกสิทธิ์ ระบบจะสรุปด้วยกฎเทคนิคแทน AI\n'
+if [[ -z "$GEMINI_KEY" ]]; then    printf '\nยังไม่มี Gemini API key: ถ้า Bedrock ถูกบล็อกสิทธิ์ ระบบจะสรุปด้วยกฎเทคนิคแทน AI\n'
   printf '  เพิ่มภายหลังได้: bash scripts/deploy_learnerlab.sh --email %s --gemini-key <key จาก AI Studio>\n' "${EMAIL:-you@example.com}"
 else
   printf '\nได้ตั้ง Gemini API key แล้ว — ถ้า Bedrock ถูกบล็อก ระบบจะใช้ AI สำรอง (Gemini) ก่อนตกไปกฎเทคนิค\n'
