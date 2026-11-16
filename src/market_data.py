@@ -425,6 +425,22 @@ def fetch_news(symbol: str, ticker=None) -> list[dict[str, str]]:
     return _dedupe_news(_yfinance_news(ticker) + _google_news(symbol))
 
 
+SPARK_POINTS = 30
+
+
+def _spark_series(rows: list[dict[str, float]], limit: int = SPARK_POINTS) -> list[float]:
+    """ราคาปิดย้อนหลังไม่กี่วันสำหรับวาดกราฟเส้นจิ๋วบนหน้าเว็บ
+
+    ใช้ rows ที่ดึงมาแล้วเพื่อคำนวณ indicator จึงไม่มีการเรียก network เพิ่ม
+    """
+    closes = [
+        round(float(row["close"]), 2)
+        for row in rows[-limit:]
+        if isinstance(row, dict) and row.get("close") is not None
+    ]
+    return closes
+
+
 def fetch_market_data(symbol: str) -> dict:
     """ดึงข้อมูลครบชุดของหุ้น 1 ตัว พร้อมข้อมูลพร้อมใช้สำหรับส่งให้ AI.
 
@@ -460,6 +476,7 @@ def fetch_market_data(symbol: str) -> dict:
         "market": market,
         "indicators": indicators,
         "news": rank_news(yf_news + rss_news, symbol, name),
+        "spark": _spark_series(rows),
         "data_points": len(rows),
         "fetch_ms": int((time.perf_counter() - started) * 1000),
     }
