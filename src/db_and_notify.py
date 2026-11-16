@@ -227,11 +227,22 @@ def _headline(item: dict, limit: int = 110) -> str:
 
 
 def _news_lines(result: dict, limit: int = 3) -> list[str]:
-    """อารมณ์ข่าว + หัวข้อข่าวล่าสุด ต่อท้ายรายละเอียดของหุ้นแต่ละตัว"""
+    """อารมณ์ข่าว + ข่าวที่ AI คัดว่าสำคัญ ต่อท้ายรายละเอียดของหุ้นแต่ละตัว"""
     ai = result.get("ai") or {}
     tone = str(ai.get("news_tone") or "").strip() or "-"
+    picks = [pick for pick in (ai.get("news_picks") or [])[:limit] if _headline(pick)]
     news = result.get("news") or []
     lines = [f"  อารมณ์ข่าว: {tone}"]
+
+    if picks:
+        lines.append("  ข่าวที่ AI ให้ความสำคัญ:")
+        for pick in picks:
+            lines.append(f"    - {_headline(pick)}")
+            why = str(pick.get("why") or "").strip()
+            if why:
+                lines.append(f"      เหตุผล: {why}")
+        return lines
+
     titles = [line for line in (_headline(item) for item in news[:limit]) if line]
     if titles:
         lines.append("  ข่าวล่าสุด:")

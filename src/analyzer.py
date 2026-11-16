@@ -54,7 +54,10 @@ _RESPONSE_SCHEMA = """{
     "checklist": ["เช็กลิสต์ 3 ข้อ ภาษาไทย", "...", "..."]
   },
   "catalysts": ["ปัจจัยบวก 2-3 ข้อ ภาษาไทย"],
-  "risks": ["ความเสี่ยง 2-3 ข้อ ภาษาไทย"]
+  "risks": ["ความเสี่ยง 2-3 ข้อ ภาษาไทย"],
+  "news_picks": [
+    {"title": "คัดลอกหัวข้อข่าวจากรายการด้านบนให้ตรงตัวอักษร", "why": "เหตุผล 1 ประโยคว่าทำไมข่าวนี้สำคัญต่อการตัดสินใจ"}
+  ]
 }"""
 
 _client = None
@@ -111,11 +114,35 @@ def _persona_focus(persona: str) -> str:
     )
 
 
+def _age_suffix(item: dict) -> str:
+    """ต่อท้ายชื่อแหล่งข่าวด้วยอายุข่าว เพื่อให้ AI ให้นำหนักความใหม่ได้"""
+    raw = str((item or {}).get("published_at") or "").strip()
+    if not raw:
+        return ""
+    try:
+        published = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return ""
+    if published.tzinfo is None:
+        published = published.replace(tzinfo=timezone.utc)
+    hours = (datetime.now(timezone.utc) - published).total_seconds() / 3600.0
+    if hours < 0:
+        return ""
+    if hours < 1:
+        return ", ไม่ถึง 1 ชม.ก่อน"
+    if hours < 24:
+        return f", {int(hours)} ชม.ก่อน"
+    return f", {int(hours // 24)} วันก่อน"
+
+
 def build_prompt(market: dict, persona: str) -> str:
     indicators = market.get("indicators", {})
     news = market.get("news", [])
     news_lines = (
-        "\n".join(f"- {item.get('title')} ({item.get('source')})" for item in news)
+        "\n".join(
+            f"- [{index}] {item.get('title')} ({item.get('source')}{_age_suffix(item)})"
+            for index, item in enumerate(news, start=1)
+        )
         if news
         else "- ไม่พบข่าวล่าสุด"
     )
@@ -146,6 +173,9 @@ def build_prompt(market: dict, persona: str) -> str:
 {_RESPONSE_SCHEMA}
 
 กฎเพิ่มเติม: ตัวเลขใน action_plan ต้องอ้างอิงจากราคาและอินดิเคเตอร์ข้างต้นเท่านั้น
+ใน news_picks ให้เลือกข่าวที่สำคัญต่อการตัดสินใจจริง 1-3 ข่าวจากรายการข่าวด้านบนเท่านั้น
+โดยต้องคัดลอก title ให้ตรงกับรายการ ห้ามแต่งหัวข้อใหม่ และให้เหตุผลว่าข่าวนั้นมีผลต่อราคาหรือความเสี่ยงอย่างไร
+ถ้าไม่มีข่าวที่เกี่ยวข้องจริง ให้ส่ง news_picks เป็น []
 ข้อความทั้งหมดต้องเป็นภาษาไทย กระชับ อ่านง่าย และต้องเป็น JSON ที่ parse ได้จริง"""
 
 
@@ -176,7 +206,70 @@ def _as_text_list(value, limit: int = 3) -> list[str]:
     return items[:limit]
 
 
-def _normalize_ai(payload: dict, persona: str) -> dict:
+def _normalize_news_picks(raw, news: list[dict], limit: int = 3) -> list[dict]:
+    """รับข่าวที่ AI เลือก แต่ยอมรับเฉพาะหัวข้อที่อยู่ในรายการจริง (กันการแต่งข่าวขึ้นมาเอง)"""
+    entries = raw if isinstance(raw, list) else ([raw] if isinstance(raw, dict) else [])
+    by_title = {
+        str(item.get("title") or "").strip().lower(): item
+        for item in news
+        if str(item.get("title") or "").strip()
+    }
+
+    picks: list[dict] = []
+    seen: set[str] = set()
+    for entry in entries:
+        if isinstance(entry, str):
+            title, why = entry, ""
+        elif isinstance(entry, dict):
+            title = str(entry.get("title") or "")
+            why = str(entry.get("why") or "")
+        else:
+            continue
+
+        title = title.strip().strip('"').strip()
+        if not title:
+            continue
+
+        match = by_title.get(title.lower())
+        if match is None:  # ลองจับจากพาดหัวขึ้นต้นเหมือนกัน
+            prefix = title.lower()[:60]
+            for known, item in by_title.items():
+                if known.startswith(prefix) or prefix.startswith(known[:60]):
+                    match = item
+                    break
+        if match is None:
+            continue
+
+        key = str(match.get("title")).lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        picks.append(
+            {
+                "title": str(match.get("title")),
+                "source": str(match.get("source") or ""),
+                "url": str(match.get("url") or ""),
+                "why": " ".join(why.split())[:200],
+            }
+        )
+        if len(picks) >= limit:
+            break
+
+    if not picks:  # AI ไม่เลือกหรือเลือกไม่ตรงรายการ -> ใช้ลำดับที่ดีที่สุดจากตัวกรอง
+        picks = [
+            {
+                "title": str(item.get("title")),
+                "source": str(item.get("source") or ""),
+                "url": str(item.get("url") or ""),
+                "why": "",
+            }
+            for item in news[:limit]
+            if str(item.get("title") or "").strip()
+        ]
+    return picks
+
+
+def _normalize_ai(payload: dict, persona: str, market: dict | None = None) -> dict:
     try:
         score = int(round(float(payload.get("score", 50))))
     except (TypeError, ValueError):
@@ -211,6 +304,7 @@ def _normalize_ai(payload: dict, persona: str) -> dict:
         },
         "catalysts": _as_text_list(payload.get("catalysts"), 3) or ["ยังไม่มีปัจจัยบวกที่ชัดเจน"],
         "risks": _as_text_list(payload.get("risks"), 3) or ["ความผันผวนของตลาดโดยรวม"],
+        "news_picks": _normalize_news_picks(payload.get("news_picks"), (market or {}).get("news") or []),
         "persona": persona,
     }
 
@@ -296,6 +390,16 @@ def rule_based_analysis(market: dict, persona: str, reason: str = "") -> dict:
             "ความผันผวนของตลาดและปัจจัยมหภาคอาจเปลี่ยนทิศทางราคา",
             "ควรตรวจสอบข้อมูลพื้นฐานและข่าวล่าสุดประกอบก่อนตัดสินใจ",
         ][:3],
+        "news_picks": [
+            {
+                "title": str(item.get("title")),
+                "source": str(item.get("source") or ""),
+                "url": str(item.get("url") or ""),
+                "why": "คัดจากความใหม่และความเกี่ยวข้องอัตโนมัติ (ยังไม่ได้ผ่าน AI)",
+            }
+            for item in (market.get("news") or [])[:3]
+            if str(item.get("title") or "").strip()
+        ],
         "persona": persona,
     }
 
@@ -385,7 +489,7 @@ def analyze_stock(market: dict, persona: str = "dividend") -> dict:
     try:
         text, tokens = _invoke_bedrock(prompt, persona)
         payload = _extract_json(text)
-        ai = _normalize_ai(payload, persona)
+        ai = _normalize_ai(payload, persona, market)
         ai["risk_level"], ai["risk_reasons"] = _assess_risk(market, ai)
         return {
             "ai": ai,

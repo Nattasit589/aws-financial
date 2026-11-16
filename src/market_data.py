@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import difflib
 import math
 import re
 import statistics
@@ -17,10 +18,37 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 SYMBOL_PATTERN = re.compile(r"^[A-Z0-9.^=-]{1,15}$")
 NEWS_LIMIT = 5
 NEWS_TIMEOUT_SECONDS = 6
+# ข่าวที่เก่ากว่านี้ถูกหักคะแนน (แต่ไม่ตัดทิ้ง เพราะหุ้นต่างประเทศบางตัวมีข่าวน้อย)
+NEWS_STALE_DAYS = 14
+# ข่าวภาพรวมตลาดที่ไม่ได้พูดถึงหุ้นตัวนั้นโดยตรง
+GENERIC_NEWS_WORDS = (
+    "ภาวะตลาด",
+    "ภาพรวมตลาด",
+    "หุ้นวันนี้",
+    "หุ้นไทยวันนี้",
+    "ดัชนี set",
+    "set index",
+    "market wrap",
+    "stock market today",
+    "dow jones",
+)
+# พาดหัวเชิงโฆษณา/ชวนสมัคร ซึ่งไม่ใช่งานข่าว
+PROMO_NEWS_WORDS = (
+    "โปรโมชั่น",
+    "สมัครฟรี",
+    "คอร์ส",
+    "แจกฟรี",
+    "ebook",
+    "e-book",
+    "affiliate",
+    "sponsored",
+)
 USER_AGENT = "Mozilla/5.0 (compatible; AIEquityCoPilot/1.0; +https://aws.amazon.com/lambda/)"
 
 
@@ -203,6 +231,105 @@ def _company_name(metadata: dict, symbol: str) -> str:
     return symbol
 
 
+def _parse_published_at(raw) -> str:
+    """แปลงเวลาที่แต่ละแหล่งให้มาเป็น ISO 8601 UTC (คืน '' ถ้าแปลงไม่ได้)"""
+    if raw is None or raw == "":
+        return ""
+    if isinstance(raw, (int, float)):
+        try:
+            return datetime.fromtimestamp(float(raw), tz=timezone.utc).isoformat(timespec="seconds")
+        except (OverflowError, OSError, ValueError):
+            return ""
+
+    text = str(raw).strip()
+    if not text:
+        return ""
+
+    try:  # ISO 8601 เช่น 2026-11-16T10:00:00Z
+        return (
+            datetime.fromisoformat(text.replace("Z", "+00:00"))
+            .astimezone(timezone.utc)
+            .isoformat(timespec="seconds")
+        )
+    except ValueError:
+        pass
+
+    try:  # RFC 822 ของ RSS เช่น Mon, 16 Nov 2026 10:00:00 GMT
+        return parsedate_to_datetime(text).astimezone(timezone.utc).isoformat(timespec="seconds")
+    except (TypeError, ValueError):
+        return ""
+
+
+def _age_hours(item: dict) -> float | None:
+    """อายุข่าวเป็นชั่วโมง คืน None ถ้าไม่มีวันที่ที่อ่านได้"""
+    try:
+        published = datetime.fromisoformat(str(item.get("published_at") or "").replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if published.tzinfo is None:
+        published = published.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - published).total_seconds() / 3600.0
+
+
+def _news_score(item: dict, symbol: str, name_hint: str = "") -> float:
+    """ให้คะแนนข่าวจากความใหม่ + ความเกี่ยวข้องกับหุ้นตัวนั้น + คุณภาพของพาดหัว"""
+    title = str(item.get("title") or "").strip()
+    low = title.lower()
+    score = 0.0
+
+    age = _age_hours(item)
+    if age is not None:
+        if age <= 24:
+            score += 6
+        elif age <= 24 * 3:
+            score += 3
+        elif age > 24 * NEWS_STALE_DAYS:
+            score -= 3
+
+    base = symbol[:-3] if is_thai_symbol(symbol) else symbol
+    mentions_symbol = bool(base) and base.lower() in low
+    mentions_name = bool(name_hint) and name_hint.lower() in low
+    if mentions_symbol:
+        score += 8
+    if mentions_name:
+        score += 3
+    if not mentions_symbol and not mentions_name:
+        score -= 3  # น่าจะเป็นข่าวของเรื่องอื่น
+    if any(word in low for word in GENERIC_NEWS_WORDS):
+        score -= 4
+    if any(word in low for word in PROMO_NEWS_WORDS):
+        score -= 5
+    return score
+
+
+def _is_similar_title(first: str, second: str, threshold: float = 0.82) -> bool:
+    return difflib.SequenceMatcher(None, first[:120], second[:120]).ratio() >= threshold
+
+
+def rank_news(items: list[dict], symbol: str, name_hint: str = "") -> list[dict]:
+    """รวมข่าวสองแหล่ง -> ตัดเรื่องเดียวกันที่พาดหัวต่างกัน -> เรียงจากข่าวที่ควรอ่านก่อน
+
+    ใช้เป็นตัวกรองรอบแรกก่อนส่งให้ AI เลือก 3 ข่าวที่สำคัญจริงอีกที
+    """
+    unique: list[dict] = []
+    for item in items:
+        title = str(item.get("title") or "").strip()
+        if not title:
+            continue
+        low = title.lower()
+        if any(word in low for word in PROMO_NEWS_WORDS):
+            continue  # พาดหัวโฆษณาไม่ถูกนับเป็นข่าว
+        if any(_is_similar_title(low, str(kept.get("title") or "").lower()) for kept in unique):
+            continue
+        unique.append({**item, "title": title})
+
+    unique.sort(
+        key=lambda item: (_news_score(item, symbol, name_hint), str(item.get("published_at") or "")),
+        reverse=True,
+    )
+    return unique[:NEWS_LIMIT]
+
+
 def _yfinance_news(ticker) -> list[dict[str, str]]:
     if ticker is None:
         return []
@@ -231,6 +358,9 @@ def _yfinance_news(ticker) -> list[dict[str, str]]:
                 "source": str(publisher or entry.get("publisher") or "Yahoo Finance"),
                 "url": str(url or entry.get("link") or ""),
                 "origin": "yfinance",
+                "published_at": _parse_published_at(
+                    content.get("pubDate") or entry.get("providerPublishTime")
+                ),
             }
         )
         if len(headlines) >= NEWS_LIMIT:
@@ -270,6 +400,7 @@ def _google_news(symbol: str) -> list[dict[str, str]]:
                 "source": (item.findtext("source") or "Google News").strip(),
                 "url": (item.findtext("link") or "").strip(),
                 "origin": "google_news",
+                "published_at": _parse_published_at(item.findtext("pubDate")),
             }
         )
         if len(headlines) >= NEWS_LIMIT:
@@ -315,6 +446,7 @@ def fetch_market_data(symbol: str) -> dict:
     indicators = build_indicators(rows)
     currency = str(metadata.get("currency") or ("THB" if thai else "USD"))
     exchange = str(metadata.get("fullExchangeName") or metadata.get("exchangeName") or "").strip()
+    name = _company_name(metadata, symbol)
 
     if thai:
         market = "ตลาดหลักทรัพย์แห่งประเทศไทย (SET)"
@@ -323,11 +455,11 @@ def fetch_market_data(symbol: str) -> dict:
 
     return {
         "symbol": symbol,
-        "name": _company_name(metadata, symbol),
+        "name": name,
         "currency": currency,
         "market": market,
         "indicators": indicators,
-        "news": _dedupe_news(yf_news + rss_news),
+        "news": rank_news(yf_news + rss_news, symbol, name),
         "data_points": len(rows),
         "fetch_ms": int((time.perf_counter() - started) * 1000),
     }
