@@ -16,7 +16,7 @@ import logging
 import os
 import re
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 logger = logging.getLogger("equity-copilot.storage")
@@ -285,6 +285,36 @@ def send_email(subject: str, message: str) -> str:
 
 RISK_LABELS = {"LOW": "ต่ำ", "MEDIUM": "ปานกลาง", "HIGH": "สูง"}
 
+# อีโมจิช่วยให้สแกนอีเมล plain-text ได้เร็ว (SNS ส่งได้เฉพาะข้อความ ไม่มี HTML)
+SIGNAL_EMOJI = {"BUY": "🟢", "WATCH": "🟡", "SELL": "🔴"}
+RISK_EMOJI = {"LOW": "🟢", "MEDIUM": "🟡", "HIGH": "🔴"}
+TONE_EMOJI = {"บวก": "🟢", "กลาง": "🟡", "ลบ": "🔴"}
+SOURCE_LABELS = {
+    "bedrock": "🤖 Bedrock AI",
+    "gemini_fallback": "✨ Gemini (AI สำรอง)",
+    "rule_fallback": "📐 กฎเทคนิค (ไม่ใช่ AI)",
+}
+RULE = "━" * 34
+
+
+def _signal_emoji(value) -> str:
+    return SIGNAL_EMOJI.get(str(value or "").upper(), "⚪")
+
+
+def _risk_emoji(value) -> str:
+    return RISK_EMOJI.get(str(value or "").upper(), "⚪")
+
+
+def _tone_emoji(value) -> str:
+    return TONE_EMOJI.get(str(value or "").strip(), "⚪")
+
+
+def _bullet_lines(items, empty: str) -> list[str]:
+    texts = [str(item).strip() for item in (items or []) if str(item).strip()]
+    if not texts:
+        return [f"      • {empty}"]
+    return [f"      • {text}" for text in texts]
+
 
 def _headline(item: dict, limit: int = 110) -> str:
     """จัดบรรทัดหัวข้อข่าว 1 บรรทัด (ตัดยาวเกินไปเพื่อให้อ่านง่ายในอีเมล)"""
@@ -303,84 +333,149 @@ def _news_lines(result: dict, limit: int = 3) -> list[str]:
     tone = str(ai.get("news_tone") or "").strip() or "-"
     picks = [pick for pick in (ai.get("news_picks") or [])[:limit] if _headline(pick)]
     news = result.get("news") or []
-    lines = [f"  อารมณ์ข่าว: {tone}"]
+    lines = [f"   📰 อารมณ์ข่าว: {_tone_emoji(tone)} {tone}"]
 
     if picks:
-        lines.append("  ข่าวที่ AI ให้ความสำคัญ:")
+        lines.append("   🔎 ข่าวที่ AI ให้ความสำคัญ:")
         for pick in picks:
-            lines.append(f"    - {_headline(pick)}")
+            lines.append(f"      • {_headline(pick)}")
             why = str(pick.get("why") or "").strip()
             if why:
-                lines.append(f"      เหตุผล: {why}")
+                lines.append(f"        ↳ {why}")
         return lines
 
     titles = [line for line in (_headline(item) for item in news[:limit]) if line]
     if titles:
-        lines.append("  ข่าวล่าสุด:")
-        lines.extend(f"    - {line}" for line in titles)
+        lines.append("   🗞 ข่าวล่าสุด:")
+        lines.extend(f"      • {line}" for line in titles)
     else:
-        lines.append("  ข่าวล่าสุด: ไม่พบข่าวในรอบนี้")
+        lines.append("      • ไม่พบข่าวในรอบนี้")
     return lines
 
 
-def build_report_email(workspace_id: str, persona: str, results: list[dict], summary: dict) -> tuple[str, str]:
+def _stock_block(result: dict) -> list[str]:
+    """รายละเอียดหุ้น 1 ตัว จัดเป็นกลุ่มบรรทัดที่อ่านด้วยตารางตาได้"""
+    ai = result.get("ai") or {}
+    indicators = result.get("indicators") or {}
+    plan = ai.get("action_plan") or {}
+    signal = str(ai.get("signal") or "WATCH").upper()
+    risk_key = str(ai.get("risk_level") or "MEDIUM").upper()
+    risk_label = RISK_LABELS.get(risk_key, "ปานกลาง")
+    change = indicators.get("change_pct")
+    change_text = f"{float(change):+.2f}%" if change is not None and str(change) != "" else "n/a"
+    price = indicators.get("price", "-")
+    currency = result.get("currency") or ""
+
+    lines = [
+        f"{_signal_emoji(signal)} {result.get('symbol', '-')}"
+        + (f" · {result.get('name')}" if result.get("name") else ""),
+        f"   💵 ราคา {price} {currency} ({change_text} เทียบวันก่อน)",
+        f"   🎯 คะแนน {ai.get('score', 0)}/100 · สัญญาณ {signal} · ความเสี่ยง {_risk_emoji(risk_key)}{risk_label}",
+    ]
+
+    summary_text = str(ai.get("trend_summary") or "").strip()
+    if summary_text:
+        lines.append(f"   🧭 มุมมอง: {summary_text}")
+
+    reasons = [str(reason).strip() for reason in (ai.get("risk_reasons") or [])[:2] if str(reason).strip()]
+    if reasons:
+        lines.append(f"   ❗ เหตุผลความเสี่ยง: {' · '.join(reasons)}")
+
+    lines.append(
+        f"   🎛 แผนเทรด: เข้า {plan.get('entry_zone') or '-'} · "
+        f"ตัดขาดทุน {plan.get('stop_loss') or '-'} · เป้าทำกำไร {plan.get('take_profit') or '-'}"
+    )
+    lines.append("   ✅ ปัจจัยสนับสนุน:")
+    lines.extend(_bullet_lines(ai.get("catalysts"), "ยังไม่มีปัจจัยบวกที่ชัดเจนในรอบนี้"))
+    lines.append("   ⚠️ ความเสี่ยงที่ต้องระวัง:")
+    lines.extend(_bullet_lines(ai.get("risks"), "ไม่มีสัญญาณเสี่ยงเด่นในรอบนี้"))
+    lines.extend(_news_lines(result))
+
+    cost_thb = float((result.get("cost") or {}).get("thb") or 0.0)
+    source = str(result.get("source") or "")
+    meta = [SOURCE_LABELS.get(source, "🤖 AI")]
+    if result.get("model_id") and source != "rule_fallback":  # กฎเทคนิคไม่ได้ใช้โมเดล
+        meta.append(str(result["model_id"]))
+    meta.append(f"ต้นทุนผลนี้ {cost_thb:.4f} บาท")
+    if result.get("cache_hit"):
+        meta.append("ใช้ผลจาก Smart Cache")
+    lines.append(f"   🧾 {' · '.join(meta)}")
+    return lines
+
+
+def build_report_email(
+    workspace_id: str,
+    persona: str,
+    results: list[dict],
+    summary: dict,
+    archive_uri: str = "",
+) -> tuple[str, str]:
+    """สร้างอีเมล plain-text ที่สแกนด้วยตาได้เร็ว: อีโมจิ + หัวข้อคั่น + สรุปก่อน รายละเอียดทีหลัง
+
+    Subject ต้องเป็น ASCII เท่านั้น (ข้อจำกัดของ SNS) จึงไม่ใส่อีโมจิในหัวข้ออีเมล
+    """
     persona_label = "สายปันผลเน้นปลอดภัย" if persona == "dividend" else "สายเก็งกำไรระยะสั้น"
-    subject = f"[AI Equity Co-Pilot] Portfolio report: {workspace_id}"
+    stamp = datetime.now(timezone(timedelta(hours=7))).strftime("%d/%m/%Y %H:%M")
+    subject = f"[AI Equity Co-Pilot] Portfolio report {workspace_id}"
     counts = summary.get("counts", {})
     risks = summary.get("risk_counts", {})
 
+    valid = [item for item in results if item.get("ai") and not item.get("error")]
+    failed = [item for item in results if item.get("error") or not item.get("ai")]
+
     lines = [
-        f"AI Equity Co-Pilot — รายงานสรุปพอร์ต {workspace_id}",
-        f"โหมดนักลงทุน: {persona_label}",
-        f"คะแนนเฉลี่ยพอร์ต: {summary.get('avg_score', 0)}/100",
-        f"สัญญาณ: BUY {counts.get('BUY', 0)} | WATCH {counts.get('WATCH', 0)} | SELL {counts.get('SELL', 0)}",
+        f"📊 AI Equity Co-Pilot · รายงานสรุปพอร์ต {workspace_id}",
+        RULE,
+        f"🕒 {stamp} น. (เวลาไทย)",
+        f"🧭 โหมดนักลงทุน: {persona_label}",
+        f"🎯 คะแนนเฉลี่ยพอร์ต: {summary.get('avg_score', 0)}/100 "
+        f"(วิเคราะห์สำเร็จ {summary.get('analyzed_count', len(valid))} หุ้น)",
         (
-            "ความเสี่ยง: ต่ำ {low} | ปานกลาง {mid} | สูง {high}".format(
-                low=risks.get("LOW", 0), mid=risks.get("MEDIUM", 0), high=risks.get("HIGH", 0)
-            )
+            f"📈 สัญญาณ: {_signal_emoji('BUY')} BUY {counts.get('BUY', 0)} · "
+            f"{_signal_emoji('WATCH')} WATCH {counts.get('WATCH', 0)} · "
+            f"{_signal_emoji('SELL')} SELL {counts.get('SELL', 0)}"
         ),
-        f"บทสรุปภาพรวม: {summary.get('verdict', '-')}",
-        f"ต้นทุน AI รอบนี้: {summary.get('total_cost_thb', 0):.4f} บาท",
+        (
+            f"🛡️ ความเสี่ยง: {_risk_emoji('LOW')}ต่ำ {risks.get('LOW', 0)} · "
+            f"{_risk_emoji('MEDIUM')}ปานกลาง {risks.get('MEDIUM', 0)} · "
+            f"{_risk_emoji('HIGH')}สูง {risks.get('HIGH', 0)}"
+        ),
+        f"💰 ต้นทุน AI รอบนี้: {summary.get('total_cost_thb', 0):.4f} บาท",
+        f"🧠 บทสรุป: {summary.get('verdict', '-')}",
         "",
-        "สรุปเร็ว:",
+        f"📋 สรุปเร็ว (1 บรรทัดต่อหุ้น)",
+        "─" * 34,
     ]
 
-    for result in results:
+    for result in valid:
         ai = result.get("ai") or {}
-        if result.get("error") or not ai:
-            continue
         indicators = result.get("indicators") or {}
         change = indicators.get("change_pct")
-        change_text = f"{float(change):+.2f}%" if change is not None else "n/a"
-        risk_label = RISK_LABELS.get(str(ai.get("risk_level") or "MEDIUM").upper(), "ปานกลาง")
+        change_text = f"{float(change):+.2f}%" if change is not None and str(change) != "" else "n/a"
+        risk_key = str(ai.get("risk_level") or "MEDIUM").upper()
+        signal = str(ai.get("signal") or "WATCH").upper()
+        cache_mark = " ⚡" if result.get("cache_hit") else ""
         lines.append(
-            f"  {result.get('symbol', '-'):<8} {str(ai.get('signal', 'WATCH')):<5} "
-            f"{int(ai.get('score') or 0):>3}/100  {change_text:>8}  เสี่ยง{risk_label}"
+            f"{_signal_emoji(signal)} {result.get('symbol', '-')} · {signal} · "
+            f"{int(ai.get('score') or 0)}/100 · {change_text} · "
+            f"เสี่ยง{RISK_LABELS.get(risk_key, 'ปานกลาง')}{cache_mark}"
         )
 
-    lines.extend(["", "รายละเอียดรายตัว:"])
+    if valid:
+        lines.extend(["", "🔍 รายละเอียดรายตัว", RULE])
+        for index, result in enumerate(valid):
+            if index:
+                lines.append("")
+            lines.extend(_stock_block(result))
 
-    for result in results:
-        ai = result.get("ai") or {}
-        if result.get("error") or not ai:
-            continue  # หุ้นที่ดึงข้อมูลไม่สำเร็จถูกข้ามไปแล้วในสรุปเร็ว
-        indicators = result.get("indicators") or {}
-        lines.extend(
-            [
-                f"- {result.get('symbol')} ({result.get('name', '')})",
-                f"  คะแนน {ai.get('score', 0)}/100 | สัญญาณ {ai.get('signal', '-')} | "
-                f"ราคา {indicators.get('price', '-')} {result.get('currency', '')}",
-                f"  ความเสี่ยง: {RISK_LABELS.get(str(ai.get('risk_level') or 'MEDIUM').upper(), 'ปานกลาง')}"
-                f" — {'; '.join(ai.get('risk_reasons', [])[:2]) or '-'}",
-                f"  สรุป: {ai.get('trend_summary', '-')}",
-                f"  จุดเข้า: {ai.get('action_plan', {}).get('entry_zone', '-')} | "
-                f"ตัดขาดทุน: {ai.get('action_plan', {}).get('stop_loss', '-')} | "
-                f"ทำกำไร: {ai.get('action_plan', {}).get('take_profit', '-')}",
-                f"  ความเสี่ยง: {'; '.join(ai.get('risks', []))}",
-            ]
-        )
-        lines.extend(_news_lines(result))
-        lines.append("")
+    if failed:
+        lines.extend(["", "⚠️ หุ้นที่วิเคราะห์ไม่สำเร็จในรอบนี้", RULE])
+        for item in failed:
+            lines.append(f"❌ {item.get('symbol', '-')} — {item.get('error') or 'ไม่มีผลวิเคราะห์'}")
 
-    lines.append("ข้อมูลนี้เป็นเครื่องมือช่วยวิเคราะห์ ไม่ใช่คำแนะนำการลงทุน")
+    lines.extend(["", RULE])
+    if archive_uri:
+        lines.append(f"📎 สำเนารายงาน (JSON บน Amazon S3): {archive_uri}")
+        lines.append("   เปิดดูไฟล์ได้จากคอนโซล S3 หรือ AWS CLI (aws s3 cp)")
+    lines.append(f"ℹ️ ข้อมูลนี้เป็นเครื่องมือช่วยวิเคราะห์ ไม่ใช่คำแนะนำการลงทุน · สร้างโดย AI Equity Co-Pilot")
     return subject, "\n".join(lines)

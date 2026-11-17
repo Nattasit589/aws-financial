@@ -309,12 +309,13 @@ async def notify_workspace(workspace_id: str, request: Request) -> JSONResponse:
 
         results = _collect_results(workspace["workspace_id"], workspace["persona"], False)
         summary = _summary(results)
-        subject, message = db.build_report_email(workspace["workspace_id"], workspace["persona"], results, summary)
+        # เก็บสำเนาลง S3 ก่อนสร้างอีเมล เพื่อให้แนบลิงก์ไว้ในส่วนท้ายรายงานได้
         archive_uri = db.export_report_json(
             workspace["workspace_id"], workspace["persona"], results, summary, "manual"
         )
-        if archive_uri:
-            message += f"\nสำเนารายงาน (JSON บน Amazon S3): {archive_uri}\n"
+        subject, message = db.build_report_email(
+            workspace["workspace_id"], workspace["persona"], results, summary, archive_uri
+        )
         message_id = db.send_email(subject, message)
         return JSONResponse(
             content={
@@ -365,14 +366,12 @@ def run_scheduled_report() -> dict:
             summary = _summary(results)
             analyzed += len(results)
             changed += summary["counts"]["BUY"] + summary["counts"]["SELL"]
-            subject, message = db.build_report_email(
-                workspace["workspace_id"], workspace["persona"], results, summary
-            )
             archive_uri = db.export_report_json(
                 workspace["workspace_id"], workspace["persona"], results, summary, "scheduled"
             )
-            if archive_uri:
-                message += f"\nสำเนารายงาน (JSON บน Amazon S3): {archive_uri}\n"
+            _, message = db.build_report_email(
+                workspace["workspace_id"], workspace["persona"], results, summary, archive_uri
+            )
             blocks.append(message)
         except Exception:  # noqa: BLE001 - Workspace เดียวพังต้องไม่ล้มทั้งรอบ
             logger.exception("วิเคราะห์ Workspace %s ไม่สำเร็จ", workspace_id)
@@ -381,7 +380,11 @@ def run_scheduled_report() -> dict:
         return {"ok": False, "workspaces": len(workspaces), "message": "วิเคราะห์ไม่สำเร็จทุกพอร์ต"}
 
     try:
-        db.send_email("[AI Equity Co-Pilot] Daily market close report", "\n\n".join(blocks))
+        subject = (
+            "[AI Equity Co-Pilot] Daily market close report "
+            f"{datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
+        )
+        db.send_email(subject, "\n\n".join(blocks))
     except db.NotifyError:
         logger.exception("ส่งอีเมลรอบอัตโนมัติไม่สำเร็จ")
 
