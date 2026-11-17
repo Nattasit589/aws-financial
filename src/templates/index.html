@@ -313,6 +313,7 @@
               <label class="refresh-option"><input id="force-refresh" type="checkbox" disabled /><span>บังคับวิเคราะห์ใหม่<small>ดึงข้อมูลใหม่ โดยไม่ใช้ Smart Cache</small></span></label>
               <button id="btn-notify" class="button ghost full" disabled><span data-icon="mail"></span>ส่งรายงานเข้าอีเมล</button>
               <p class="field-help">ส่งถึงผู้รับที่ยืนยัน SNS ของระบบ ไม่ได้แยกผู้รับตามรหัสพอร์ต</p>
+              <p id="report-links" class="field-help" hidden></p>
             </div>
           </div>
           <div class="schedule"><span data-icon="clock"></span><div><strong>กำหนดการวิเคราะห์อัตโนมัติ</strong><p id="cron-text">จันทร์–ศุกร์ 17:15 น. เวลาไทย</p><small>เวลาตามกำหนด ไม่ใช่สถานะการทำงานจริง</small></div></div>
@@ -479,9 +480,15 @@
       if(state.busy||!state.ready)return;if(!state.symbols.length){toast('เพิ่มหุ้นก่อนเริ่มวิเคราะห์','error');return;}busy('analyze','กำลังดึงราคา ข่าว และวิเคราะห์พอร์ต ระยะเวลาขึ้นกับแหล่งข้อมูลและความพร้อมของ AI…');
       try{const data=await post('/analyze',{persona:state.persona,force_refresh:forceOverride||$('force-refresh').checked});state.results=data.results||[];state.snapshot=false;saveSnapshot();const failed=state.results.filter(item=>!validResult(item)).length;status('วิเคราะห์สำเร็จ '+(state.results.length-failed)+' หุ้น'+(failed?' · ไม่สำเร็จ '+failed+' หุ้น ดูสาเหตุในการ์ดด้านล่าง':''),failed?'warning':'success');toast(failed?'บางหุ้นยังวิเคราะห์ไม่สำเร็จ':'วิเคราะห์พอร์ตเรียบร้อยแล้ว',failed?'error':'success');}catch(err){status(err.message+(state.results.length?' — ผลเดิมยังคงแสดงอยู่':''),'error');toast(err.message,'error');}finally{finish();}
     }
+    function showReportLinks(data) {
+      const box=$('report-links'),uri=data.report_s3_uri||'',url=data.report_s3_console_url||'';
+      if(!uri){box.hidden=true;box.textContent='';return;}
+      box.hidden=false;
+      box.innerHTML=(url?'<a href="'+escapeHtml(url)+'" target="_blank" rel="noopener">เปิดสำเนารายงาน (JSON) ใน Amazon S3</a> — ':'สำเนารายงาน: ')+'<span class="number">'+escapeHtml(uri)+'</span>';
+    }
     async function notifyEmail() {
       if(state.busy||!state.ready||!state.symbols.length)return;busy('notify','กำลังเตรียมรายงานและส่งคำขอไปยัง Amazon SNS…');
-      try{const data=await post('/notify',{persona:state.persona});status('SNS รับคำขอแล้ว กรุณาตรวจอีเมลของผู้รับที่ยืนยัน subscription ไว้','success');toast(data.message||'ส่งคำขอรายงานแล้ว');}catch(err){status(err.message,'error');toast(err.message,'error');}finally{finish();}
+      try{const data=await post('/notify',{persona:state.persona});status('SNS รับคำขอแล้ว กรุณาตรวจอีเมลของผู้รับที่ยืนยัน subscription ไว้','success');toast(data.message||'ส่งคำขอรายงานแล้ว');showReportLinks(data);}catch(err){status(err.message,'error');toast(err.message,'error');$('report-links').hidden=true;}finally{finish();}
     }
     const calcIds=['calc-customers','calc-price','calc-analyses','calc-unit-cost','calc-fixed','calc-days'];
     function recalc() {

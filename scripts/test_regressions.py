@@ -173,6 +173,49 @@ class ReportArchiveTests(unittest.TestCase):
         self.assertEqual(payload["report_kind"], "scheduled")
         self.assertEqual(payload["results"][0]["indicators"]["price"], 34.5)
 
+    def test_report_email_has_bull_bear_technicals_and_links(self):
+        results = [
+            {
+                "symbol": "PTT.BK",
+                "name": "PTT",
+                "currency": "THB",
+                "source": "bedrock",
+                "model_id": "amazon.nova-lite-v1:0",
+                "indicators": {"price": 34.5, "change_pct": 1.25, "rsi14": 55.2, "sma20": 33.9},
+                "cost": {"usd": 0.00003, "thb": 0.0011},
+                "ai": {
+                    "score": 72,
+                    "signal": "BUY",
+                    "risk_level": "LOW",
+                    "action_plan": {"entry_zone": "33.8", "stop_loss": "32.5", "take_profit": "37.0"},
+                    "catalysts": ["กำไรโต"],
+                    "risks": ["ราคาน้ำมันลด"],
+                },
+            }
+        ]
+        summary = {
+            "avg_score": 72.0,
+            "counts": {"BUY": 1, "WATCH": 0, "SELL": 0},
+            "risk_counts": {"LOW": 1, "MEDIUM": 0, "HIGH": 0},
+            "analyzed_count": 1,
+            "total_cost_thb": 0.0011,
+            "verdict": "โซนบวก",
+            "highlights": [{"symbol": "PTT.BK", "score": 72, "signal": "BUY"}],
+        }
+        subject, message = db.build_report_email(
+            "DEMO", "dividend", results, summary, "s3://b/reports/DEMO/d/manual.json", "https://x.lambda-url.us-east-1.on.aws/"
+        )
+        assert subject.isascii(), subject  # SNS ปฏิเสธ Subject ที่ไม่ใช่ ASCII
+        for marker in ("🐂 ปัจจัยหนุน", "🐻 ปัจจัยกดดัน", "📊 RSI14 55.2", "🏆 หุ้นเด่น", "🔗 เปิด Dashboard: https://x"):
+            assert marker in message, marker
+        assert "s3://b/reports/DEMO/d/manual.json" in message
+
+    def test_s3_console_url_from_uri(self):
+        url = app._s3_console_url("s3://copilot-reports/reports/DEMO/2026-11-17/manual.json")
+        assert url.startswith("https://s3.console.aws.amazon.com/s3/object/copilot-reports")
+        assert "prefix=reports%2FDEMO%2F2026-11-17%2Fmanual.json" in url
+        assert app._s3_console_url("") == ""
+
     def test_missing_bucket_or_s3_error_never_breaks_report(self):
         with patch.object(db, "REPORT_BUCKET", ""):
             self.assertEqual(db.export_report_json("TEST", "dividend", [], {}, "manual"), "")

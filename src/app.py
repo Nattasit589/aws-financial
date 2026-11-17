@@ -15,6 +15,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -148,6 +149,20 @@ def _analyze_symbol(workspace_id: str, symbol: str, persona: str, force: bool) -
         logger.exception("บันทึกผลวิเคราะห์ลง DynamoDB ไม่สำเร็จ (%s)", symbol)
 
     return result
+
+
+def _s3_console_url(uri: str) -> str:
+    """แปลง s3://bucket/key เป็นลิงก์คอนโซล S3 สำหรับคลิกดูไฟล์บนหน้าเว็บ"""
+    if not uri.startswith("s3://"):
+        return ""
+    bucket, _, key = uri[len("s3://"):].partition("/")
+    if not bucket or not key:
+        return ""
+    region = os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or "us-east-1"
+    return (
+        f"https://s3.console.aws.amazon.com/s3/object/{quote(bucket)}"
+        f"?region={quote(region)}&prefix={quote(key, safe='')}"
+    )
 
 
 def _persist_persona(workspace: dict, persona: str) -> dict:
@@ -314,7 +329,12 @@ async def notify_workspace(workspace_id: str, request: Request) -> JSONResponse:
             workspace["workspace_id"], workspace["persona"], results, summary, "manual"
         )
         subject, message = db.build_report_email(
-            workspace["workspace_id"], workspace["persona"], results, summary, archive_uri
+            workspace["workspace_id"],
+            workspace["persona"],
+            results,
+            summary,
+            archive_uri,
+            db.dashboard_url(),
         )
         message_id = db.send_email(subject, message)
         return JSONResponse(
@@ -324,6 +344,7 @@ async def notify_workspace(workspace_id: str, request: Request) -> JSONResponse:
                 "message_id": message_id,
                 "summary": summary,
                 "report_s3_uri": archive_uri,
+                "report_s3_console_url": _s3_console_url(archive_uri),
             }
         )
     except db.WorkspaceError as exc:
@@ -370,7 +391,12 @@ def run_scheduled_report() -> dict:
                 workspace["workspace_id"], workspace["persona"], results, summary, "scheduled"
             )
             _, message = db.build_report_email(
-                workspace["workspace_id"], workspace["persona"], results, summary, archive_uri
+                workspace["workspace_id"],
+                workspace["persona"],
+                results,
+                summary,
+                archive_uri,
+                db.dashboard_url(),
             )
             blocks.append(message)
         except Exception:  # noqa: BLE001 - Workspace เดียวพังต้องไม่ล้มทั้งรอบ

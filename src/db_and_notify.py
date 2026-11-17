@@ -33,6 +33,8 @@ _resource = None
 _table = None
 _sns = None
 _s3 = None
+_lambda = None
+_dashboard_url = ""
 
 
 class WorkspaceError(Exception):
@@ -69,6 +71,35 @@ def _s3_client():
 
         _s3 = boto3.client("s3")
     return _s3
+
+
+def dashboard_url() -> str:
+    """ลิงก์ Dashboard ของฟังก์ชันนี้เอง (สำหรับแนบในอีเมล)
+
+    หาไม่ได้จาก CloudFormation เพราะ Environment ของฟังก์ชันอ้าง Function URL
+    ของตัวเองไม่ได้ (circular dependency) จึงถาม Lambda API ครั้งเดียวแล้วจำไว้
+    """
+    global _lambda, _dashboard_url
+    if _dashboard_url:
+        return _dashboard_url
+    override = os.environ.get("DASHBOARD_URL", "").strip()
+    if override:
+        _dashboard_url = override
+        return _dashboard_url
+    function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "").strip()
+    if not function_name:  # รันนอก Lambda (เทสต์/พรีวิว) — ไม่ต้องมีลิงก์
+        return ""
+    try:
+        if _lambda is None:
+            import boto3
+
+            _lambda = boto3.client("lambda")
+        config = _lambda.get_function_url_config(FunctionName=function_name)
+        _dashboard_url = str(config.get("FunctionUrl") or "").strip()
+    except Exception as exc:  # noqa: BLE001 - ไม่มีลิงก์ก็ยังส่งรายงานได้
+        logger.warning("ดึงลิงก์ Dashboard ไม่สำเร็จ: %s", exc.__class__.__name__)
+        return ""
+    return _dashboard_url
 
 
 def normalize_workspace(raw: str) -> str:
@@ -353,6 +384,29 @@ def _news_lines(result: dict, limit: int = 3) -> list[str]:
     return lines
 
 
+def _technical_line(indicators: dict) -> str:
+    """สรุปตัวชี้วัดเทคนิคแบบบรรทัดเดียว (ข้ามค่าที่ไม่มี)"""
+    parts: list[str] = []
+
+    def add(label: str, key: str, fmt: str, suffix: str = "") -> None:
+        value = indicators.get(key)
+        if value is None or str(value) == "":
+            return
+        try:
+            parts.append(f"{label} {fmt.format(float(value))}{suffix}")
+        except (TypeError, ValueError):
+            return
+
+    add("RSI14", "rsi14", "{:.1f}")
+    add("SMA20", "sma20", "{:,.2f}")
+    add("SMA50", "sma50", "{:,.2f}")
+    add("ปริมาณ", "volume_ratio", "×{:.2f}")
+    add("ผันผวน 20 วัน", "volatility_20d_pct", "{:.1f}%")
+    add("ห่าง 52W สูง", "dist_high_52w_pct", "{:.1f}%")
+    add("ห่าง 52W ต่ำ", "dist_low_52w_pct", "+{:.1f}%")
+    return "   📊 " + " · ".join(parts) if parts else ""
+
+
 def _stock_block(result: dict) -> list[str]:
     """รายละเอียดหุ้น 1 ตัว จัดเป็นกลุ่มบรรทัดที่อ่านด้วยตารางตาได้"""
     ai = result.get("ai") or {}
@@ -381,13 +435,20 @@ def _stock_block(result: dict) -> list[str]:
     if reasons:
         lines.append(f"   ❗ เหตุผลความเสี่ยง: {' · '.join(reasons)}")
 
+    technical = _technical_line(indicators)
+    if technical:
+        lines.append(technical)
+
     lines.append(
         f"   🎛 แผนเทรด: เข้า {plan.get('entry_zone') or '-'} · "
         f"ตัดขาดทุน {plan.get('stop_loss') or '-'} · เป้าทำกำไร {plan.get('take_profit') or '-'}"
     )
-    lines.append("   ✅ ปัจจัยสนับสนุน:")
+    checklist = [str(item).strip() for item in (plan.get("checklist") or [])[:3] if str(item).strip()]
+    if checklist:
+        lines.append(f"   📝 เช็กลิสต์ก่อนตัดสินใจ: {' · '.join(checklist)}")
+    lines.append("   🐂 ปัจจัยหนุน (Bull case):")
     lines.extend(_bullet_lines(ai.get("catalysts"), "ยังไม่มีปัจจัยบวกที่ชัดเจนในรอบนี้"))
-    lines.append("   ⚠️ ความเสี่ยงที่ต้องระวัง:")
+    lines.append("   🐻 ปัจจัยกดดัน (Bear case):")
     lines.extend(_bullet_lines(ai.get("risks"), "ไม่มีสัญญาณเสี่ยงเด่นในรอบนี้"))
     lines.extend(_news_lines(result))
 
@@ -409,6 +470,7 @@ def build_report_email(
     results: list[dict],
     summary: dict,
     archive_uri: str = "",
+    dashboard_link: str = "",
 ) -> tuple[str, str]:
     """สร้างอีเมล plain-text ที่สแกนด้วยตาได้เร็ว: อีโมจิ + หัวข้อคั่น + สรุปก่อน รายละเอียดทีหลัง
 
@@ -442,10 +504,25 @@ def build_report_email(
         ),
         f"💰 ต้นทุน AI รอบนี้: {summary.get('total_cost_thb', 0):.4f} บาท",
         f"🧠 บทสรุป: {summary.get('verdict', '-')}",
-        "",
-        f"📋 สรุปเร็ว (1 บรรทัดต่อหุ้น)",
-        "─" * 34,
     ]
+
+    highlights = [entry for entry in (summary.get("highlights") or []) if entry.get("symbol")]
+    if highlights:
+        lines.append(
+            "🏆 หุ้นเด่น: "
+            + " · ".join(
+                f"{_signal_emoji(entry.get('signal'))}{entry['symbol']} {entry.get('score', 0)}"
+                for entry in highlights
+            )
+        )
+
+    lines.extend(
+        [
+            "",
+            "📋 สรุปเร็ว (1 บรรทัดต่อหุ้น)",
+            "─" * 34,
+        ]
+    )
 
     for result in valid:
         ai = result.get("ai") or {}
@@ -474,6 +551,8 @@ def build_report_email(
             lines.append(f"❌ {item.get('symbol', '-')} — {item.get('error') or 'ไม่มีผลวิเคราะห์'}")
 
     lines.extend(["", RULE])
+    if dashboard_link:
+        lines.append(f"🔗 เปิด Dashboard: {dashboard_link}")
     if archive_uri:
         lines.append(f"📎 สำเนารายงาน (JSON บน Amazon S3): {archive_uri}")
         lines.append("   เปิดดูไฟล์ได้จากคอนโซล S3 หรือ AWS CLI (aws s3 cp)")

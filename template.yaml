@@ -164,6 +164,13 @@ Resources:
               Resource:
                 - !Sub "arn:aws:bedrock:*::foundation-model/*"
                 - !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/*"
+        # อ่าน URL ของตัวเองเพื่อแนบลิงก์ Dashboard ในอีเมล (ดู db_and_notify.dashboard_url)
+        - Statement:
+            - Effect: Allow
+              Action:
+                - lambda:GetFunctionUrlConfig
+              Resource:
+                - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-app"
 
 Outputs:
   DashboardUrl:
