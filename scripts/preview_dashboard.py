@@ -162,6 +162,44 @@ def summary(results: list[dict]) -> dict:
     }
 
 
+def sentiment_fixture(results: list[dict]) -> dict | None:
+    """ข้อมูล Greed & Fear Index จำลอง (ไม่เรียก network) ให้หน้าพรีวิวเหมือน API จริง"""
+    valid = [item for item in results if item.get("ai") and not item.get("error")]
+    if not valid:
+        return None
+    above = sum(1 for item in valid if item["indicators"]["price"] >= (item["indicators"].get("sma20") or 0))
+    rsi = sum(item["indicators"].get("rsi14") or 50 for item in valid) / len(valid)
+    components = [
+        {"key": "volatility", "name": "ความผันผวนตลาด (VIX)", "score": 62.0, "weight": 0.20, "weight_pct": 20, "effective_weight_pct": 20, "detail": "VIX 17.40 (เฉลี่ย 90 วัน 18.10)"},
+        {"key": "momentum", "name": "โมเมนตัมดัชนีตลาด", "score": 56.0, "weight": 0.20, "weight_pct": 20, "effective_weight_pct": 20, "detail": "S&P 500 +1.2% เทียบ SMA50 · SET -0.4% เทียบ SMA50"},
+        {"key": "breadth", "name": "ความกว้างของตลาดในพอร์ต", "score": round(above / len(valid) * 100, 1), "weight": 0.15, "weight_pct": 15, "effective_weight_pct": 15, "detail": f"{above}/{len(valid)} หุ้นยืนเหนือ SMA20"},
+        {"key": "technical", "name": "ความร้อนแรงทางเทคนิค (RSI)", "score": round(max(0, min(100, (rsi - 30) / 40 * 100)), 1), "weight": 0.15, "weight_pct": 15, "effective_weight_pct": 15, "detail": f"RSI14 เฉลี่ย {rsi:.1f}"},
+        {"key": "positioning", "name": "ตำแหน่งราคาเทียบ 52 สัปดาห์", "score": 54.0, "weight": 0.10, "weight_pct": 10, "effective_weight_pct": 10, "detail": "เฉลี่ยต่ำกว่าจุดสูงสุด 52 สัปดาห์ 13.8%"},
+        {"key": "news", "name": "อารมณ์ข่าว", "score": 60.0, "weight": 0.10, "weight_pct": 10, "effective_weight_pct": 10, "detail": f"AI ประเมินอารมณ์ข่าวแล้ว {len(valid)}/{len(valid)} หุ้น"},
+        {"key": "signals", "name": "สัญญาณ AI ในพอร์ต", "score": 58.0, "weight": 0.10, "weight_pct": 10, "effective_weight_pct": 10, "detail": f"จากสัญญาณ AI {len(valid)} หุ้น"},
+    ]
+    total = sum(component["score"] * component["weight"] for component in components)
+    score_value = round(total / sum(component["weight"] for component in components), 1)
+    bands = ((25, "extreme_fear", "Extreme Fear", "กลัวสุดขีด", "🥶"), (45, "fear", "Fear", "กลัว", "😨"),
+             (55, "neutral", "Neutral", "เป็นกลาง", "😐"), (75, "greed", "Greed", "โลภ", "🤑"),
+             (101, "extreme_greed", "Extreme Greed", "โลภสุดขีด", "🔥"))
+    for ceiling, key, label, label_th, emoji in bands:
+        if score_value < ceiling:
+            band = {"key": key, "label": label, "label_th": label_th, "emoji": emoji}
+            break
+    history = [{"date": f"2026-10-{day:02d}", "score": round(score_value - 8 + (day % 7) * 2.4, 1)} for day in range(18, 32)] + \
+              [{"date": f"2026-11-{day:02d}", "score": round(score_value - 4 + (day % 9) * 1.1, 1)} for day in range(1, 17)]
+    return {
+        "available": True, "score": score_value, "band": band, "components": components,
+        "drivers": [f"{components[0]['name']}: {components[0]['detail']} (หนุนความโลภ)",
+                    f"{components[1]['name']}: {components[1]['detail']} (หนุนความโลภ)"],
+        "history": history, "coverage": {"used": len(components), "total": 7}, "missing": [],
+        "as_of": now_iso(), "history_note": "เส้นย้อนหลังคำนวณจาก VIX + โมเมนตัมตลาด (ข้อมูลตัวอย่าง)",
+        "method": "[OFFLINE FIXTURE] ดัชนีเชิงผสม 7 องค์ประกอบ ถ่วงน้ำหนักตามข้อมูลที่วัดได้",
+        "disclaimer": "ดัชนีนี้คำนวณโดยโปรเจกต์เอง ไม่ใช่ CNN Fear & Greed และไม่ใช่คำแนะนำการลงทุน",
+    }
+
+
 class PreviewState:
     def __init__(self):
         self.lock = threading.Lock()
@@ -254,7 +292,8 @@ class PreviewState:
             results = self.results(workspace, force=force if action == "analyze" else False)
             if action == "analyze":
                 return {"ok": True, "workspace": deepcopy(workspace), "results": results,
-                        "summary": summary(results), "force_refresh": force}
+                        "summary": summary(results), "sentiment": sentiment_fixture(results),
+                        "force_refresh": force}
             return {"ok": True, "message": "OFFLINE MOCK SUCCESS — จำลองส่งรายงานเท่านั้น ไม่มีการส่ง SNS หรืออีเมลจริง",
                     "message_id": f"offline-mock-{uuid4()}", "summary": summary(results)}
 

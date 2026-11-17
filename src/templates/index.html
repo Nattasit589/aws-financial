@@ -64,6 +64,30 @@
     .dashboard-grid { display:grid; grid-template-columns:280px minmax(0,1fr); gap:24px; align-items:start; }
     .sidebar { position:sticky; top:24px; min-width:0; }
     .panel { border:1px solid var(--line); background:var(--panel); border-radius:var(--radius); }
+    .sentiment-panel { margin-top:16px; padding:20px; display:grid; gap:16px; }
+    .sentiment-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .sentiment-head h2 { display:flex; align-items:center; gap:8px; }
+    .sentiment-body { display:grid; gap:16px; grid-template-columns:200px minmax(0,1fr); align-items:start; }
+    .sentiment-score { display:flex; align-items:center; gap:12px; }
+    .sentiment-emoji { font-size:2rem; line-height:1; }
+    .sentiment-score strong { font-size:2rem; font-weight:500; line-height:1.1; }
+    .sentiment-score small { color:var(--subtle); }
+    .sentiment-band { color:var(--muted); font-size:.8125rem; margin-top:2px; }
+    .sentiment-meter { position:relative; height:10px; border-radius:999px; background:linear-gradient(90deg,var(--red),var(--amber),var(--green)); grid-column:1/-1; margin:18px 0 22px; }
+    .sentiment-meter-fill { position:absolute; top:0; bottom:0; left:var(--pct,50%); right:0; border-radius:0 999px 999px 0; background:var(--panel); opacity:.8; }
+    .sentiment-meter-pin { position:absolute; top:-5px; left:var(--pct,50%); width:3px; height:20px; margin-left:-1px; border-radius:2px; background:var(--text); box-shadow:0 0 0 2px var(--panel); }
+    .sentiment-meter-scale { position:absolute; left:0; right:0; top:16px; display:flex; justify-content:space-between; color:var(--subtle); font-size:.6875rem; font-style:normal; }
+    .sentiment-meter-scale i { font-style:normal; }
+    .sentiment-drivers ul { margin:6px 0 0; padding-left:18px; color:var(--muted); display:grid; gap:4px; }
+    .sentiment-history { grid-column:1/-1; }
+    .sentiment-components { list-style:none; margin:0; padding:0; grid-column:1/-1; display:grid; gap:8px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
+    .sentiment-components li { border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:var(--panel-soft); display:grid; gap:4px; }
+    .sentiment-components .component-top { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+    .sentiment-components .component-name { font-size:.8125rem; }
+    .sentiment-components .component-bar { height:4px; border-radius:999px; background:var(--field); overflow:hidden; }
+    .sentiment-components .component-bar span { display:block; height:100%; background:var(--muted); border-radius:999px; }
+    .sentiment-components .component-detail { color:var(--subtle); font-size:.75rem; }
+    @media (max-width:760px) { .sentiment-body { grid-template-columns:1fr; } }
     .sidebar-body { padding:20px; }
     .sidebar-toggle { display:none; }
     .section-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
@@ -326,6 +350,17 @@
             <div class="health-body"><div class="score-block"><div id="summary-ring" class="score-ring"><div><strong id="summary-score" class="number">—</strong><small>คะแนน / 100</small></div></div><div><p id="summary-title" class="health-verdict-title"></p><p id="summary-verdict" class="health-verdict"></p></div></div><div class="signal-counts"><div class="signal-count positive"><strong id="count-buy" class="number">0</strong><span>BUY · ซื้อ</span></div><div class="signal-count warning-text"><strong id="count-watch" class="number">0</strong><span>WATCH · เฝ้าดู</span></div><div class="signal-count negative"><strong id="count-sell" class="number">0</strong><span>SELL · ขาย</span></div></div></div>
             <div class="health-footer"><span id="summary-risk"></span><span id="summary-top"></span></div>
           </section>
+          <section id="sentiment-panel" class="panel sentiment-panel" aria-labelledby="sentiment-title" hidden>
+            <div class="sentiment-head"><h2 id="sentiment-title"><span data-icon="activity"></span>Greed &amp; Fear Index</h2><span id="sentiment-coverage" class="small muted"></span></div>
+            <div class="sentiment-body">
+              <div class="sentiment-score"><span id="sentiment-emoji" class="sentiment-emoji" aria-hidden="true">🌡</span><div><strong id="sentiment-value" class="number">—</strong><small>/ 100</small><p id="sentiment-band" class="sentiment-band"></p></div></div>
+              <div class="sentiment-meter" role="img" aria-labelledby="sentiment-value"><span id="sentiment-fill" class="sentiment-meter-fill"></span><span id="sentiment-pin" class="sentiment-meter-pin"></span><span class="sentiment-meter-scale" aria-hidden="true"><i>กลัวสุดขีด</i><i>กลาง</i><i>โลภสุดขีด</i></span></div>
+              <div class="sentiment-drivers"><h3 class="detail-title">ปัจจัยที่ขยับดัชนีมากที่สุด</h3><ul id="sentiment-drivers" class="detail-list"></ul></div>
+              <div class="sentiment-history"><h3 class="detail-title">แนวโน้ม 30 วันซื้อขาย</h3><div id="sentiment-chart"></div></div>
+              <ul id="sentiment-components" class="sentiment-components" aria-label="องค์ประกอบของดัชนี"></ul>
+              <p id="sentiment-note" class="small subtle"></p>
+            </div>
+          </section>
           <section id="portfolio-rows" class="panel table-panel" aria-label="ตารางสรุปหุ้น" hidden></section>
           <div id="result-heading" class="result-heading" hidden><div><h2>บทวิเคราะห์รายหุ้น</h2><p id="result-count"></p></div><div><label for="result-filter" class="sr-only">กรองผลวิเคราะห์</label><select id="result-filter" class="input"><option value="all">หุ้นทั้งหมด</option><option value="BUY">BUY · ซื้อ</option><option value="WATCH">WATCH · เฝ้าดู</option><option value="SELL">SELL · ขาย</option><option value="error">มีข้อผิดพลาด</option></select></div></div>
           <div id="results" class="results-list"></div>
@@ -361,7 +396,7 @@
     document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML=icon(el.dataset.icon); });
     const storage={get(key){try{return localStorage.getItem(key);}catch{return null;}},set(key,value){try{localStorage.setItem(key,value);}catch{}}};
     const validPersona=value=>value==='momentum'?'momentum':'dividend';
-    const state={workspaceId:storage.get('copilot.workspace')||'DEMO-PORT',persona:validPersona(storage.get('copilot.persona')),symbols:[],results:[],maxSymbols:10,busy:'',ready:false,snapshot:false,filter:'all',view:'portfolio'};
+    const state={workspaceId:storage.get('copilot.workspace')||'DEMO-PORT',persona:validPersona(storage.get('copilot.persona')),symbols:[],results:[],sentiment:null,maxSymbols:10,busy:'',ready:false,snapshot:false,filter:'all',view:'portfolio'};
     let timerId,toastTimer,startedAt,removeSymbol='',removeTrigger=null,sidebarInitialized=false;
     const mobile=window.matchMedia('(max-width:800px)');
     const escapeHtml=value=>String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -388,8 +423,8 @@
       valid.forEach(item=>{counts[item.ai.signal in counts?item.ai.signal:'WATCH']++;risks[item.ai.risk_level in risks?item.ai.risk_level:'MEDIUM']++;});
       return {valid,counts,risks,average:valid.length?Math.round(valid.reduce((sum,item)=>sum+score(item.ai.score),0)/valid.length*10)/10:0,thb:valid.reduce((sum,item)=>sum+(Number(item.cost?.thb)||0),0),usd:valid.reduce((sum,item)=>sum+(Number(item.cost?.usd)||0),0)};
     }
-    function saveSnapshot() { if(state.ready) storage.set('copilot.cache.'+state.workspaceId,JSON.stringify({results:state.results,symbols:state.symbols,persona:state.persona,savedAt:Date.now()})); }
-    function restoreSnapshot(id) { try { const saved=JSON.parse(storage.get('copilot.cache.'+id)); if(!saved||!Array.isArray(saved.results)||!saved.results.length||!Array.isArray(saved.symbols))return false;state.results=saved.results;state.symbols=saved.symbols;state.persona=validPersona(saved.persona);state.snapshot=true;return true;}catch{return false;} }
+    function saveSnapshot() { if(state.ready) storage.set('copilot.cache.'+state.workspaceId,JSON.stringify({results:state.results,symbols:state.symbols,persona:state.persona,sentiment:state.sentiment,savedAt:Date.now()})); }
+    function restoreSnapshot(id) { try { const saved=JSON.parse(storage.get('copilot.cache.'+id)); if(!saved||!Array.isArray(saved.results)||!saved.results.length||!Array.isArray(saved.symbols))return false;state.results=saved.results;state.symbols=saved.symbols;state.persona=validPersona(saved.persona);state.sentiment=saved.sentiment||null;state.snapshot=true;return true;}catch{return false;} }
     function toast(message,kind='success') { $('toast').textContent=message;$('toast').dataset.kind=kind;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{$('toast').hidden=true;},5000); }
     function status(message,tone='info') { $('status-box').hidden=!message;$('status-box').dataset.tone=tone;$('status-message').textContent=message;$('status-icon').innerHTML=icon(tone==='loading'?'refresh':tone==='error'||tone==='warning'?'alert':tone==='success'?'check':'info',tone==='loading'?'spinner':''); }
     function controls() {
@@ -455,10 +490,27 @@
       $('results').innerHTML=visible.map(resultCard).join('');document.querySelectorAll('.stock-details').forEach(el=>{el.open=open.has(el.dataset.details);});
       if(!visible.length){$('results-empty').hidden=false;$('results-empty').innerHTML=emptyState('ไม่มีหุ้นในตัวกรองนี้','เปลี่ยนตัวกรองเพื่อกลับไปดูผลวิเคราะห์ทั้งหมด','clear-filter','แสดงหุ้นทั้งหมด');}
     }
-    function render() { renderWatchlist();renderSummary();renderResults();controls(); }
+    function render() { renderWatchlist();renderSummary();renderSentiment();renderResults();controls(); }
+    function renderSentiment() {
+      const panel=$('sentiment-panel'),s=state.sentiment;
+      if(!s||!s.available||!numeric(s.score)){panel.hidden=true;return;}
+      const band=s.band||{},scoreValue=score(s.score);
+      panel.hidden=false;
+      $('sentiment-emoji').textContent=band.emoji||'🌡';
+      $('sentiment-value').textContent=fmt(s.score,1);
+      $('sentiment-band').textContent=(band.label_th||'')+(band.label?' · '+band.label:'');
+      $('sentiment-coverage').textContent=s.coverage?('ใช้ข้อมูล '+s.coverage.used+' / '+s.coverage.total+' องค์ประกอบ'):'';
+      const meter=panel.querySelector('.sentiment-meter');
+      meter.style.setProperty('--pct',scoreValue+'%');
+      $('sentiment-drivers').innerHTML=(s.drivers&&s.drivers.length?s.drivers:['ยังไม่มีข้อมูลพอระบุปัจจัยเด่น']).map(item=>'<li>'+escapeHtml(item)+'</li>').join('');
+      $('sentiment-chart').innerHTML=sparkline((s.history||[]).map(point=>point.score));
+      $('sentiment-components').innerHTML=(s.components||[]).map(component=>{const value=score(component.score),tone=value>=60?'var(--green)':value>=40?'var(--amber)':'var(--red)';return '<li><div class="component-top"><span class="component-name">'+escapeHtml(component.name)+'</span><strong class="number">'+fmt(component.score,0)+'</strong></div><div class="component-bar"><span style="width:'+value+'%;background:'+tone+'"></span></div><span class="component-detail">'+escapeHtml(component.detail||'')+' ('+(component.effective_weight_pct||component.weight_pct||0)+'%)</span></li>';}).join('');
+      const note=[s.note,s.method,s.disclaimer].filter(Boolean).join(' · ');
+      $('sentiment-note').textContent=note+(s.history_note?' · '+s.history_note:'');
+    }
     async function loadWorkspace() {
       if(state.busy)return;const id=$('workspace-input').value.trim().replace(/[^A-Za-z0-9_-]/g,'').toUpperCase().slice(0,32);if(!id){$('workspace-input').setAttribute('aria-invalid','true');toast('กรุณาระบุรหัสพอร์ตด้วยตัวอักษรอังกฤษ ตัวเลข - หรือ _','error');$('workspace-input').focus();return;}
-      $('workspace-input').removeAttribute('aria-invalid');state.workspaceId=id;state.symbols=[];state.results=[];state.ready=false;state.snapshot=false;state.filter='all';$('result-filter').value='all';sidebarInitialized=false;$('workspace-input').value=id;
+      $('workspace-input').removeAttribute('aria-invalid');state.workspaceId=id;state.symbols=[];state.results=[];state.sentiment=null;state.ready=false;state.snapshot=false;state.filter='all';$('result-filter').value='all';sidebarInitialized=false;$('workspace-input').value=id;
       const restored=restoreSnapshot(id);busy('load',restored?'แสดงสำเนาในเบราว์เซอร์ชั่วคราว กำลังตรวจสอบผลจากเซิร์ฟเวอร์…':'กำลังโหลดพอร์ต '+id+'…');render();
       try{const data=await request(endpoint());state.workspaceId=data.workspace.workspace_id;state.symbols=data.workspace.symbols;state.persona=validPersona(data.workspace.persona);state.results=data.analyses||[];state.maxSymbols=data.max_symbols||10;state.ready=true;state.snapshot=false;storage.set('copilot.workspace',state.workspaceId);storage.set('copilot.persona',state.persona);saveSnapshot();status(state.results.length?'โหลดผลวิเคราะห์ที่บันทึกไว้แล้ว ตรวจเวลาในการ์ดก่อนใช้ตัดสินใจ':'');}
       catch(err){status(restored?'ติดต่อเซิร์ฟเวอร์ไม่ได้ ขณะนี้เป็นเพียงสำเนาเก่าในเบราว์เซอร์ — '+err.message:err.message,restored?'warning':'error');toast(err.message,'error');}
@@ -474,11 +526,11 @@
     }
     async function setPersona(persona) {
       if(state.busy||!state.ready||state.persona===persona)return;busy('persona','กำลังเปลี่ยนแนวทางการลงทุน…');
-      try{const data=await post('/persona',{persona});state.persona=validPersona(data.workspace?.persona||persona);state.results=[];state.snapshot=false;storage.set('copilot.persona',state.persona);saveSnapshot();status('เปลี่ยนเป็น'+personaLabel(state.persona)+'แล้ว กรุณาวิเคราะห์อีกครั้งเพื่อดูผลที่ตรงกับแนวทางนี้','success');toast('เปลี่ยนแนวทางการลงทุนแล้ว');}catch(err){status(err.message,'error');toast(err.message,'error');}finally{finish();}
+      try{const data=await post('/persona',{persona});state.persona=validPersona(data.workspace?.persona||persona);state.results=[];state.sentiment=null;state.snapshot=false;storage.set('copilot.persona',state.persona);saveSnapshot();status('เปลี่ยนเป็น'+personaLabel(state.persona)+'แล้ว กรุณาวิเคราะห์อีกครั้งเพื่อดูผลที่ตรงกับแนวทางนี้','success');toast('เปลี่ยนแนวทางการลงทุนแล้ว');}catch(err){status(err.message,'error');toast(err.message,'error');}finally{finish();}
     }
     async function analyze(forceOverride=false) {
       if(state.busy||!state.ready)return;if(!state.symbols.length){toast('เพิ่มหุ้นก่อนเริ่มวิเคราะห์','error');return;}busy('analyze','กำลังดึงราคา ข่าว และวิเคราะห์พอร์ต ระยะเวลาขึ้นกับแหล่งข้อมูลและความพร้อมของ AI…');
-      try{const data=await post('/analyze',{persona:state.persona,force_refresh:forceOverride||$('force-refresh').checked});state.results=data.results||[];state.snapshot=false;saveSnapshot();const failed=state.results.filter(item=>!validResult(item)).length;status('วิเคราะห์สำเร็จ '+(state.results.length-failed)+' หุ้น'+(failed?' · ไม่สำเร็จ '+failed+' หุ้น ดูสาเหตุในการ์ดด้านล่าง':''),failed?'warning':'success');toast(failed?'บางหุ้นยังวิเคราะห์ไม่สำเร็จ':'วิเคราะห์พอร์ตเรียบร้อยแล้ว',failed?'error':'success');}catch(err){status(err.message+(state.results.length?' — ผลเดิมยังคงแสดงอยู่':''),'error');toast(err.message,'error');}finally{finish();}
+      try{const data=await post('/analyze',{persona:state.persona,force_refresh:forceOverride||$('force-refresh').checked});state.results=data.results||[];state.sentiment=data.sentiment||null;state.snapshot=false;saveSnapshot();const failed=state.results.filter(item=>!validResult(item)).length;status('วิเคราะห์สำเร็จ '+(state.results.length-failed)+' หุ้น'+(failed?' · ไม่สำเร็จ '+failed+' หุ้น ดูสาเหตุในการ์ดด้านล่าง':''),failed?'warning':'success');toast(failed?'บางหุ้นยังวิเคราะห์ไม่สำเร็จ':'วิเคราะห์พอร์ตเรียบร้อยแล้ว',failed?'error':'success');}catch(err){status(err.message+(state.results.length?' — ผลเดิมยังคงแสดงอยู่':''),'error');toast(err.message,'error');}finally{finish();}
     }
     function showReportLinks(data) {
       const box=$('report-links'),uri=data.report_s3_uri||'',url=data.report_s3_console_url||'';

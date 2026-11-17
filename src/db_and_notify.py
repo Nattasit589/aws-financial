@@ -384,6 +384,50 @@ def _news_lines(result: dict, limit: int = 3) -> list[str]:
     return lines
 
 
+def _sentiment_lines(index: dict | None) -> list[str]:
+    """แปลง Greed & Fear Index เป็นบล็อกในอีเมล (ไม่มีข้อมูล = ไม่แสดงอะไรเลย)"""
+    if not index or not index.get("available") or index.get("score") is None:
+        return []
+    band_info = index.get("band") or {}
+    emoji = band_info.get("emoji") or "🌡"
+    label = band_info.get("label_th") or band_info.get("label") or "-"
+    label_en = band_info.get("label") or ""
+    score = index.get("score")
+
+    lines = [
+        "",
+        "🌡 Greed & Fear Index (ตลาด + พอร์ต)",
+        "─" * 34,
+        f"{emoji} {score}/100 · {label}" + (f" ({label_en})" if label_en and label_en != label else ""),
+    ]
+
+    components = index.get("components") or []
+    if components:
+        lines.append("   องค์ประกอบ:")
+        for component in components:
+            weight = component.get("effective_weight_pct") or component.get("weight_pct") or 0
+            lines.append(
+                f"      • {component.get('name')}: {component.get('score')}/100 "
+                f"({weight}%) — {component.get('detail')}"
+            )
+
+    drivers = index.get("drivers") or []
+    if drivers:
+        lines.append("   ปัจจัยที่ขยับดัชนีมากที่สุด:")
+        lines.extend(f"      • {driver}" for driver in drivers)
+
+    history = [point.get("score") for point in (index.get("history") or []) if point.get("score") is not None]
+    if len(history) >= 2:
+        change = history[-1] - history[0]
+        arrow = "▲" if change > 0 else ("▼" if change < 0 else "■")
+        lines.append(f"   📈 30 วันซื้อขาย: {history[0]} → {history[-1]} ({arrow} {abs(change):.1f})")
+
+    if index.get("note"):
+        lines.append(f"   ⚠️ {index['note']}")
+    lines.append(f"   ℹ️ {index.get('disclaimer') or 'ดัชนีเชิงผสมที่คำนวณเอง'}")
+    return lines
+
+
 def _technical_line(indicators: dict) -> str:
     """สรุปตัวชี้วัดเทคนิคแบบบรรทัดเดียว (ข้ามค่าที่ไม่มี)"""
     parts: list[str] = []
@@ -471,6 +515,7 @@ def build_report_email(
     summary: dict,
     archive_uri: str = "",
     dashboard_link: str = "",
+    sentiment_index: dict | None = None,
 ) -> tuple[str, str]:
     """สร้างอีเมล plain-text ที่สแกนด้วยตาได้เร็ว: อีโมจิ + หัวข้อคั่น + สรุปก่อน รายละเอียดทีหลัง
 
@@ -505,6 +550,10 @@ def build_report_email(
         f"💰 ต้นทุน AI รอบนี้: {summary.get('total_cost_thb', 0):.4f} บาท",
         f"🧠 บทสรุป: {summary.get('verdict', '-')}",
     ]
+
+    sentiment_lines = _sentiment_lines(sentiment_index)
+    if sentiment_lines:
+        lines.extend(sentiment_lines)
 
     highlights = [entry for entry in (summary.get("highlights") or []) if entry.get("symbol")]
     if highlights:

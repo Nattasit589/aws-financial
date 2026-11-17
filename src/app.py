@@ -25,6 +25,7 @@ from mangum import Mangum
 import analyzer
 import db_and_notify as db
 import market_data
+import sentiment
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("equity-copilot")
@@ -78,6 +79,15 @@ def _index_html() -> str:
                 "<p>กรุณาตรวจสอบว่าไฟล์ถูกแพ็กเข้า Lambda แล้ว</p></body></html>"
             )
     return _html_cache
+
+
+def _sentiment(results: list[dict]) -> dict:
+    """Greed & Fear Index — คำนวณไม่ได้ก็ต้องไม่ทำให้คำขอล้ม"""
+    try:
+        return sentiment.compute(results)
+    except Exception:  # noqa: BLE001
+        logger.exception("คำนวณ Greed & Fear Index ไม่สำเร็จ")
+        return {"available": False, "score": None, "components": [], "drivers": [], "history": []}
 
 
 def _summary(results: list[dict]) -> dict:
@@ -304,6 +314,7 @@ async def analyze_workspace(workspace_id: str, request: Request) -> JSONResponse
                 "workspace": workspace,
                 "results": results,
                 "summary": summary,
+                "sentiment": _sentiment(results),
                 "force_refresh": force,
             }
         )
@@ -335,6 +346,7 @@ async def notify_workspace(workspace_id: str, request: Request) -> JSONResponse:
             summary,
             archive_uri,
             db.dashboard_url(),
+            _sentiment(results),
         )
         message_id = db.send_email(subject, message)
         return JSONResponse(
@@ -397,6 +409,7 @@ def run_scheduled_report() -> dict:
                 summary,
                 archive_uri,
                 db.dashboard_url(),
+                _sentiment(results),
             )
             blocks.append(message)
         except Exception:  # noqa: BLE001 - Workspace เดียวพังต้องไม่ล้มทั้งรอบ

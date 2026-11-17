@@ -18,6 +18,7 @@ import analyzer
 import app
 import db_and_notify as db
 import preflight
+import sentiment
 
 
 class MemoryTable:
@@ -226,6 +227,83 @@ class ReportArchiveTests(unittest.TestCase):
         )
         with self.assertLogs(db.logger, level="WARNING"):
             self.assertEqual(db.export_report_json("TEST", "dividend", [], {}, "manual"), "")
+
+
+class SentimentTests(unittest.TestCase):
+    """Greed & Fear Index: ถ่วงน้ำหนักเฉพาะองค์ประกอบที่วัดได้ และต้องไม่เรียก network"""
+
+    def setUp(self):
+        self.enterContext(patch("socket.socket.connect", side_effect=AssertionError("Unexpected network access")))
+        self.enterContext(patch("socket.create_connection", side_effect=AssertionError("Unexpected network access")))
+
+    def result(self, symbol, price, sma20, rsi, tone, signal, distance):
+        return {
+            "symbol": symbol,
+            "indicators": {"price": price, "sma20": sma20, "rsi14": rsi, "dist_high_52w_pct": distance},
+            "ai": {"score": 60, "signal": signal, "news_tone": tone, "risk_level": "MEDIUM"},
+        }
+
+    def test_bands_cover_five_levels(self):
+        self.assertEqual(sentiment.band(10)["key"], "extreme_fear")
+        self.assertEqual(sentiment.band(35)["key"], "fear")
+        self.assertEqual(sentiment.band(50)["key"], "neutral")
+        self.assertEqual(sentiment.band(65)["key"], "greed")
+        self.assertEqual(sentiment.band(95)["key"], "extreme_greed")
+
+    def test_portfolio_only_index_renormalises_weights(self):
+        results = [
+            self.result("AAA", 110, 100, 70, "บวก", "BUY", -2),
+            self.result("BBB", 90, 100, 40, "ลบ", "SELL", -25),
+            self.result("CCC", 105, 100, 55, "กลาง", "WATCH", -12),
+        ]
+        index = sentiment.compute(results, context={"missing": ["^VIX", "^GSPC", "^SET.BK"]})
+        self.assertTrue(index["available"])
+        self.assertEqual({c["key"] for c in index["components"]}, {"breadth", "technical", "positioning", "news", "signals"})
+        self.assertEqual(index["coverage"], {"used": 5, "total": 7})
+        self.assertAlmostEqual(sum(c["effective_weight_pct"] for c in index["components"]), 100, places=1)
+        # หุ้นเหนือ SMA20 2/3, RSI เฉลี่ย 55, ข่าวกลาง, สัญญาณกลาง → ดัชนีต้องอยู่กลาง ๆ
+        self.assertGreater(index["score"], 35)
+        self.assertLess(index["score"], 65)
+        self.assertTrue(index["drivers"])
+
+    def test_small_portfolio_uses_market_only(self):
+        index = sentiment.compute([self.result("AAA", 110, 100, 75, "บวก", "BUY", -1)], context={"vix": 15.0})
+        self.assertTrue(index["available"])
+        self.assertEqual([c["key"] for c in index["components"]], ["volatility"])
+        self.assertIn("น้อยกว่า", index["note"])
+
+    def test_market_context_pushes_index_toward_greed(self):
+        results = [
+            self.result("AAA", 110, 100, 75, "บวก", "BUY", -1),
+            self.result("BBB", 108, 100, 70, "บวก", "BUY", -4),
+            self.result("CCC", 102, 100, 65, "กลาง", "WATCH", -10),
+        ]
+        calm = sentiment.compute(
+            results,
+            context={
+                "vix": 11.0,
+                "vix_average_90d": 18.0,
+                "momentum": {"^GSPC": {"score": 95.0, "pct_vs_sma50": 9.0}},
+                "history": [{"date": "2026-11-01", "score": 40.0}, {"date": "2026-11-17", "score": 88.0}],
+            },
+        )
+        scared = sentiment.compute(
+            results,
+            context={
+                "vix": 34.0,
+                "vix_average_90d": 18.0,
+                "momentum": {"^GSPC": {"score": 5.0, "pct_vs_sma50": -11.0}},
+                "history": [],
+            },
+        )
+        self.assertGreater(calm["score"], scared["score"])
+        self.assertEqual(calm["coverage"], {"used": 7, "total": 7})
+        self.assertEqual(len(calm["history"]), 2)
+
+    def test_empty_results_reports_unavailable(self):
+        index = sentiment.compute([], context={})
+        self.assertFalse(index["available"])
+        self.assertIsNone(index["score"])
 
 
 class PreflightTests(unittest.TestCase):
