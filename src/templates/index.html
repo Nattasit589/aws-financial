@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0b1120" />
+  <meta name="theme-color" content="#0b0d14" />
   <title>AI Equity Co-Pilot — ภาพรวมพอร์ต</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500&display=swap" rel="stylesheet" />
   <style>
-    :root { color-scheme: dark; --bg:#0b1120; --panel:#111b2c; --panel-soft:#152034; --line:#263249; --text:#edf2fa; --muted:#a0aec3; --subtle:#8191a8; --green:#62dfb7; --red:#ff8c9e; --amber:#f2cc7c; --blue:#8cbfff; --radius:18px; }
+    :root { color-scheme: dark; --bg:#0b0d14; --panel:#11141c; --panel-soft:#161a24; --raised:#1a1e28; --field:#0d1017; --line:#eef0f514; --line-strong:#eef0f51a; --text:#eef0f5; --muted:#a3a9b8; --subtle:#7a8296; --green:#4cc38a; --red:#e5484d; --amber:#e3b45c; --radius:16px; --ease:cubic-bezier(.22,1,.36,1); }
     * { box-sizing:border-box; }
     body { margin:0; background:var(--bg); color:var(--text); font-family:'IBM Plex Sans Thai','Leelawadee UI',Tahoma,system-ui,sans-serif; font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased; }
     button,input,select { font:inherit; }
@@ -18,203 +18,191 @@
     button:disabled { cursor:not-allowed; opacity:.45; }
     a { color:inherit; text-decoration:none; }
     a:hover { color:var(--green); }
-    button:focus-visible,a:focus-visible,summary:focus-visible,select:focus-visible,input:focus-visible,[tabindex]:focus-visible { outline:2px solid var(--green); outline-offset:4px; }
+    button:focus-visible,a:focus-visible,summary:focus-visible,select:focus-visible,input:focus-visible,[tabindex]:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
     h1,h2,h3,h4,p { margin:0; }
-    h2 { font-size:17px; font-weight:600; }
-    h3 { font-size:16px; font-weight:600; }
+    h2 { font-size:16px; font-weight:500; }
+    h3 { font-size:16px; font-weight:500; }
     svg { display:block; }
     [hidden] { display:none!important; }
-    .icon { width:19px; height:19px; flex-shrink:0; }
+    .icon { width:16px; height:16px; flex-shrink:0; }
     .muted { color:var(--muted); }
     .subtle { color:var(--subtle); }
     .positive { color:var(--green); }
     .negative { color:var(--red); }
     .warning-text { color:var(--amber); }
-    .number { font-variant-numeric:tabular-nums; letter-spacing:-.025em; }
-    .eyebrow { font-size:.6875rem; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--subtle); }
+    .number { font-variant-numeric:tabular-nums; }
     .small { font-size:.8125rem; }
     .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
-    .skip-link { position:fixed; top:8px; left:12px; z-index:100; transform:translateY(-150%); background:var(--green); color:var(--bg); padding:10px 18px; border-radius:8px; }
+    .skip-link { position:fixed; top:8px; left:12px; z-index:100; transform:translateY(-150%); background:var(--green); color:var(--bg); padding:8px 16px; border-radius:8px; }
     .skip-link:focus { transform:none; }
-    .topbar { border-bottom:1px solid var(--line); background:#0d1525; }
-    .topbar-inner { max-width:1440px; min-height:82px; padding:0 36px; margin:auto; display:flex; align-items:center; gap:40px; }
+    .topbar { border-bottom:1px solid var(--line); background:var(--bg); }
+    .topbar-inner { max-width:1440px; min-height:64px; padding:0 32px; margin:auto; display:flex; align-items:center; gap:32px; }
     .brand { display:flex; align-items:center; gap:12px; flex-shrink:0; }
-    .brand-mark { width:39px; height:39px; display:grid; place-items:center; border-radius:11px; background:var(--green); color:#082c24; }
-    .brand-mark .icon { width:24px; height:24px; }
-    .brand-title { font-size:16px; font-weight:600; letter-spacing:-.025em; line-height:1.35; }
-    .brand-title span { color:var(--green); }
-    .brand-caption { color:var(--subtle); font-size:.6875rem; letter-spacing:.1em; }
-    .navigation { display:flex; gap:6px; align-self:stretch; }
-    .nav-tab { background:none; color:var(--muted); border:0; border-bottom:2px solid transparent; display:flex; align-items:center; gap:9px; padding:0 18px; font-size:.875rem; font-weight:500; }
+    .brand-mark { width:40px; height:40px; display:grid; place-items:center; border-radius:10px; background:var(--green); color:var(--bg); }
+    .brand-mark .icon { width:20px; height:20px; }
+    .brand-title { font-size:16px; font-weight:500; line-height:1.35; }
+    .brand-caption { color:var(--subtle); font-size:.75rem; }
+    .navigation { display:flex; gap:4px; align-self:stretch; }
+    .nav-tab { background:none; color:var(--muted); border:0; border-bottom:2px solid transparent; display:flex; align-items:center; gap:8px; padding:0 16px; font-size:.875rem; font-weight:500; }
     .nav-tab:hover { color:var(--text); background:#ffffff03; }
     .nav-tab[aria-selected=true] { color:var(--green); border-bottom-color:var(--green); }
     .topbar-note { margin-left:auto; display:flex; align-items:center; gap:8px; color:var(--subtle); font-size:.75rem; }
-    .topbar-note .icon { width:15px; height:15px; }
-    .shell { max-width:1440px; margin:auto; padding:32px 36px 0; }
-    .page-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:26px; }
-    .page-heading h1 { font-size:30px; font-weight:600; letter-spacing:-.035em; line-height:1.5; margin:4px 0; }
+    .shell { max-width:1440px; margin:auto; padding:32px 32px 0; }
+    .page-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:24px; }
+    .page-heading h1 { font-size:32px; font-weight:500; line-height:1.5; margin:4px 0; }
     .page-heading p { color:var(--muted); font-size:.875rem; }
     .heading-actions { display:flex; align-items:center; gap:12px; }
-    .button { min-height:43px; padding:10px 16px; border-radius:10px; border:1px solid var(--line); display:inline-flex; align-items:center; justify-content:center; gap:8px; color:var(--text); background:#19263b; font-size:.875rem; font-weight:500; transition:background .15s,border-color .15s; }
-    .button:hover:not(:disabled) { background:#23324b; border-color:#40516c; }
-    .button.primary { color:#092c24; background:var(--green); border-color:var(--green); font-weight:600; box-shadow:0 3px 12px #00000015; }
-    .button.primary:hover:not(:disabled) { background:#87eccd; border-color:#87eccd; }
+    .button { min-height:44px; padding:8px 16px; border-radius:10px; border:1px solid var(--line); display:inline-flex; align-items:center; justify-content:center; gap:8px; color:var(--text); background:var(--raised); font-size:.875rem; font-weight:500; transition:background .15s var(--ease),border-color .15s var(--ease); }
+    .button:hover:not(:disabled) { background:#222736; border-color:#eef0f533; }
+    .button.primary { color:var(--bg); background:var(--green); border-color:var(--green); box-shadow:0 3px 12px #00000015; }
+    .button.primary:hover:not(:disabled) { background:#63d19e; border-color:#63d19e; }
     .button.ghost { background:transparent; }
-    .button.danger { background:#38222f; color:var(--red); border-color:#68404b; }
+    .button.danger { background:#2a1a1e; color:var(--red); border-color:#e5484d4d; }
     .button.full { width:100%; }
-    .button.small-button { min-height:36px; padding:6px 12px; font-size:.8125rem; }
-    .button .icon { width:17px; height:17px; }
+    .button.small-button { min-height:36px; padding:4px 12px; font-size:.8125rem; }
     .text-button { border:0; padding:4px 0; background:none; color:var(--green); text-align:left; font-size:.8125rem; }
-    .dashboard-grid { display:grid; grid-template-columns:282px minmax(0,1fr); gap:24px; align-items:start; }
+    .dashboard-grid { display:grid; grid-template-columns:280px minmax(0,1fr); gap:24px; align-items:start; }
     .sidebar { position:sticky; top:24px; min-width:0; }
     .panel { border:1px solid var(--line); background:var(--panel); border-radius:var(--radius); }
-    .sidebar-body { padding:22px; }
+    .sidebar-body { padding:20px; }
     .sidebar-toggle { display:none; }
     .section-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
     .section-heading .icon { color:var(--subtle); }
-    .field-label { display:block; font-size:.8125rem; color:var(--muted); font-weight:500; margin-bottom:7px; }
-    .input { width:100%; min-width:0; height:43px; padding:9px 12px; border:1px solid #35415a; border-radius:9px; color:var(--text); background:#0d1626; outline-offset:2px; }
-    .input::placeholder { color:#7e8da4; }
-    .input:hover:not(:disabled) { border-color:#50627e; }
+    .field-label { display:block; font-size:.8125rem; color:var(--muted); font-weight:500; margin-bottom:8px; }
+    .input { width:100%; min-width:0; height:44px; padding:8px 12px; border:1px solid var(--line-strong); border-radius:8px; color:var(--text); background:var(--field); outline-offset:2px; }
+    .input::placeholder { color:var(--subtle); }
+    .input:hover:not(:disabled) { border-color:#eef0f533; }
     .input[aria-invalid=true] { border-color:var(--red); }
     .input:disabled { opacity:.55; }
     .input-row { display:flex; gap:8px; }
-    .workspace-code { font-size:.875rem; letter-spacing:.035em; text-transform:uppercase; }
+    .workspace-code { font-size:.875rem; text-transform:uppercase; }
     .field-help { color:var(--subtle); font-size:.75rem; line-height:1.7; margin-top:8px; }
     .privacy-note { margin-top:12px; }
-    .privacy-note summary { cursor:pointer; display:flex; align-items:center; gap:7px; list-style:none; color:var(--subtle); font-size:.75rem; }
+    .privacy-note summary { cursor:pointer; display:flex; align-items:center; gap:8px; list-style:none; color:var(--subtle); font-size:.75rem; }
     .privacy-note summary::-webkit-details-marker { display:none; }
-    .privacy-note .icon { width:13px; height:13px; }
     .privacy-note p { margin-top:8px; font-size:.75rem; color:var(--muted); }
-    .sidebar-divider { border:0; border-top:1px solid var(--line); margin:22px 0; }
-    .persona-control { display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; background:#0c1525; border:1px solid var(--line); border-radius:11px; }
-    .persona-btn { padding:10px 4px; border:1px solid transparent; border-radius:8px; background:none; color:var(--muted); font-size:.75rem; line-height:1.6; }
-    .persona-btn .icon { margin:0 auto 5px; width:17px; height:17px; }
-    .persona-btn[aria-pressed=true] { color:var(--green); background:#193b35; border-color:#326456; }
-    .persona-description { font-size:.75rem; color:var(--subtle); margin-top:9px; min-height:36px; }
-    .watchlist-title { font-size:15px; }
-    .count-label { font-size:.75rem; color:var(--muted); background:#1d2a40; padding:3px 8px; border-radius:6px; }
-    .quick-symbols { display:flex; flex-wrap:wrap; gap:5px; margin:10px 0 16px; }
-    .quick-symbol { font-size:.6875rem; font-weight:500; border:1px solid var(--line); border-radius:6px; padding:5px 7px; color:var(--muted); background:none; }
-    .quick-symbol:hover:not(:disabled) { color:var(--green); border-color:#3e7465; }
+    .sidebar-divider { border:0; border-top:1px solid var(--line); margin:20px 0; }
+    .persona-control { display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; background:var(--field); border:1px solid var(--line); border-radius:12px; }
+    .persona-btn { padding:8px 4px; border:1px solid transparent; border-radius:8px; background:none; color:var(--muted); font-size:.75rem; line-height:1.6; }
+    .persona-btn .icon { margin:0 auto 4px; }
+    .persona-btn[aria-pressed=true] { color:var(--green); background:var(--raised); border-color:#4cc38a66; }
+    .persona-description { font-size:.75rem; color:var(--subtle); margin-top:8px; min-height:36px; }
+    .watchlist-title { font-size:16px; }
+    .count-label { font-size:.75rem; color:var(--muted); background:var(--raised); padding:4px 8px; border-radius:6px; }
+    .quick-symbols { display:flex; flex-wrap:wrap; gap:4px; margin:8px 0 16px; }
+    .quick-symbol { font-size:.6875rem; font-weight:500; border:1px solid var(--line); border-radius:6px; padding:4px 8px; color:var(--muted); background:none; }
+    .quick-symbol:hover:not(:disabled) { color:var(--green); border-color:#4cc38a66; }
     .watchlist { list-style:none; padding:0; margin:0; display:grid; gap:2px; }
-    .watchlist li { display:flex; align-items:center; gap:10px; padding:8px 0; }
-    .ticker-avatar { display:grid; place-items:center; width:33px; height:33px; flex-shrink:0; background:#223047; border:1px solid #34435b; border-radius:10px; color:#c5d7ef; font-size:.75rem; font-weight:600; }
-    .ticker-avatar.thai { color:#b8dfd1; background:#18372f; border-color:#2e5247; }
+    .watchlist li { display:flex; align-items:center; gap:8px; padding:8px 0; }
+    .ticker-avatar { display:grid; place-items:center; width:32px; height:32px; flex-shrink:0; background:var(--raised); border:1px solid var(--line); border-radius:8px; color:var(--muted); font-size:.75rem; font-weight:500; }
     .watchlist-name { flex:1; min-width:0; }
     .watchlist-name strong { display:block; font-size:.8125rem; font-weight:500; }
     .watchlist-name span { display:block; font-size:.6875rem; color:var(--subtle); }
-    .icon-button { width:34px; height:34px; border:0; border-radius:8px; display:grid; place-items:center; background:none; color:var(--subtle); flex-shrink:0; }
-    .icon-button .icon { width:16px; height:16px; }
-    .icon-button:hover:not(:disabled) { background:#402330; color:var(--red); }
-    .watchlist-empty { padding:18px 10px; border:1px dashed #35445c; border-radius:10px; color:var(--subtle); text-align:center; font-size:.8125rem; }
-    .refresh-option { display:flex; gap:9px; align-items:flex-start; color:var(--muted); font-size:.8125rem; margin-bottom:16px; cursor:pointer; }
-    .refresh-option input { accent-color:var(--green); width:16px; height:16px; margin:3px 0 0; }
+    .icon-button { width:32px; height:32px; border:0; border-radius:8px; display:grid; place-items:center; background:none; color:var(--subtle); flex-shrink:0; }
+    .icon-button:hover:not(:disabled) { background:#e5484d1f; color:var(--red); }
+    .watchlist-empty { padding:16px 8px; border:1px dashed var(--line-strong); border-radius:8px; color:var(--subtle); text-align:center; font-size:.8125rem; }
+    .refresh-option { display:flex; gap:8px; align-items:flex-start; color:var(--muted); font-size:.8125rem; margin-bottom:16px; cursor:pointer; }
+    .refresh-option input { accent-color:var(--green); width:16px; height:16px; margin:4px 0 0; }
     .refresh-option small { display:block; color:var(--subtle); font-size:.6875rem; margin-top:2px; }
-    .schedule { margin-top:16px; padding:16px 18px; display:flex; gap:11px; background:#101a2a; border:1px solid var(--line); border-radius:13px; }
-    .schedule>.icon { color:var(--blue); width:18px; height:18px; margin-top:3px; }
+    .schedule { margin-top:16px; padding:16px; display:flex; gap:12px; background:var(--panel-soft); border:1px solid var(--line); border-radius:12px; }
+    .schedule>.icon { color:var(--subtle); margin-top:4px; }
     .schedule strong { font-size:.8125rem; font-weight:500; }
     .schedule p { color:var(--muted); font-size:.75rem; margin-top:4px; }
-    .schedule small { display:block; color:var(--subtle); font-size:.6875rem; margin-top:6px; }
-    .content-column { min-width:0; display:grid; gap:22px; }
+    .schedule small { display:block; color:var(--subtle); font-size:.6875rem; margin-top:4px; }
+    .content-column { min-width:0; display:grid; gap:24px; }
     .context-line { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:.75rem; color:var(--subtle); }
     .context-line strong { color:var(--muted); font-weight:500; }
-    .context-item { display:flex; align-items:center; gap:7px; }
-    .context-item .icon { width:14px; height:14px; }
-    .health-panel { padding:24px; background:linear-gradient(110deg,#142d30 0%,#132232 46%,#111b2c 100%); border-color:#304a4c; }
+    .context-item { display:flex; align-items:center; gap:8px; }
+    .health-panel { padding:24px; }
     .health-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
-    .health-heading h2 { display:flex; align-items:center; gap:9px; font-size:14px; }
-    .health-heading h2 .icon { color:var(--green); width:17px; height:17px; }
+    .health-heading h2 { display:flex; align-items:center; gap:8px; font-size:14px; }
+    .health-heading h2 .icon { color:var(--subtle); }
     .health-body { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:24px; align-items:center; }
-    .score-block { display:flex; align-items:center; gap:19px; min-width:0; }
-    .score-ring { --pct:0; --ring:var(--green); width:92px; height:92px; border-radius:50%; flex-shrink:0; padding:5px; background:conic-gradient(var(--ring) calc(var(--pct)*1%),#28423f 0); }
-    .score-ring>div { border-radius:50%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#14252c; }
-    .score-ring strong { font-size:28px; font-weight:600; line-height:1.1; }
-    .score-ring small { font-size:.6875rem; color:var(--subtle); margin-top:3px; }
-    .health-verdict-title { font-size:19px; font-weight:500; margin-bottom:5px; }
-    .health-verdict { color:#b0c4cb; font-size:.8125rem; max-width:380px; }
+    .score-block { display:flex; align-items:center; gap:20px; min-width:0; }
+    .score-ring { --pct:0; --ring:var(--green); width:92px; height:92px; border-radius:50%; flex-shrink:0; padding:4px; background:conic-gradient(var(--ring) calc(var(--pct)*1%),var(--raised) 0); }
+    .score-ring>div { border-radius:50%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--panel); }
+    .score-ring strong { font-size:28px; font-weight:500; line-height:1.1; }
+    .score-ring small { font-size:.6875rem; color:var(--subtle); margin-top:4px; }
+    .health-verdict-title { font-size:20px; font-weight:500; margin-bottom:4px; }
+    .health-verdict { color:var(--muted); font-size:.8125rem; max-width:380px; }
     .signal-counts { display:flex; gap:8px; }
-    .signal-count { min-width:61px; text-align:center; padding:12px 10px; border:1px solid #354458; border-radius:11px; background:#0d182680; }
-    .signal-count strong { font-size:23px; display:block; line-height:1.4; }
+    .signal-count { min-width:60px; text-align:center; padding:12px 8px; border:1px solid var(--line); border-radius:12px; background:var(--panel-soft); }
+    .signal-count strong { font-size:24px; font-weight:500; display:block; line-height:1.4; }
     .signal-count span { font-size:.6875rem; }
-    .health-footer { margin-top:21px; padding-top:15px; border-top:1px solid #314249; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; color:var(--muted); font-size:.75rem; }
-    .health-footer .risk-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--amber); margin-right:6px; }
-    .status-bar { display:flex; align-items:flex-start; gap:10px; border:1px solid #344a62; background:#162439; color:#c0d4ee; border-radius:11px; padding:12px 15px; font-size:.8125rem; }
-    .status-bar>.icon { width:17px; height:17px; margin-top:2px; }
-    .status-bar[data-tone=error] { border-color:#69384c; background:#2a1c2b; color:#ffc0cc; }
-    .status-bar[data-tone=warning] { border-color:#625034; background:#29271f; color:#eddbad; }
-    .status-bar[data-tone=success] { border-color:#2d5548; background:#142b27; color:#a5dfc9; }
+    .health-footer { margin-top:20px; padding-top:16px; border-top:1px solid var(--line); display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; color:var(--muted); font-size:.75rem; }
+    .health-footer .risk-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--amber); margin-right:8px; }
+    .status-bar { display:flex; align-items:flex-start; gap:8px; border:1px solid var(--line); background:var(--panel-soft); color:var(--muted); border-radius:12px; padding:12px 16px; font-size:.8125rem; }
+    .status-bar>.icon { margin-top:2px; }
+    .status-bar[data-tone=error] { border-color:#e5484d4d; background:#2a1a1e; color:#f0a9b2; }
+    .status-bar[data-tone=warning] { border-color:#e3b45c4d; background:#282217; color:#e6cd96; }
+    .status-bar[data-tone=success] { border-color:#4cc38a4d; background:#152620; color:#a8d9c0; }
     .status-copy { flex:1; min-width:0; }
     #progress-time { flex-shrink:0; color:var(--muted); font-size:.75rem; }
     .table-panel { overflow:hidden; }
-    .table-heading { padding:18px 21px; display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid var(--line); }
+    .table-heading { padding:16px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid var(--line); }
     .table-heading h2 { font-size:14px; }
     .table-heading span { color:var(--subtle); font-size:.75rem; }
     .table-scroll { overflow-x:auto; }
     .portfolio-table { width:100%; border-collapse:collapse; white-space:nowrap; }
-    .portfolio-table th { text-align:right; color:var(--subtle); font-size:.6875rem; font-weight:500; padding:11px 14px; background:#0e1727; }
-    .portfolio-table th:first-child,.portfolio-table td:first-child { text-align:left; padding-left:21px; }
-    .portfolio-table td { padding:14px; font-size:.8125rem; text-align:right; border-top:1px solid #233047; }
-    .portfolio-table tr:hover td { background:#1b293b; }
-    .table-symbol { display:inline-block; padding:4px 0; font-weight:600; }
+    .portfolio-table th { text-align:right; color:var(--subtle); font-size:.6875rem; font-weight:500; padding:12px 16px; background:var(--panel-soft); }
+    .portfolio-table th:first-child,.portfolio-table td:first-child { text-align:left; padding-left:20px; }
+    .portfolio-table td { padding:12px 16px; font-size:.8125rem; text-align:right; border-top:1px solid var(--line); }
+    .portfolio-table tr:hover td { background:var(--raised); }
+    .table-symbol { display:inline-block; padding:4px 0; font-weight:500; }
     .table-symbol span { display:block; font-size:.6875rem; font-weight:400; color:var(--subtle); }
-    .badge { display:inline-flex; align-items:center; gap:5px; border-radius:6px; border:1px solid #3b485d; padding:3px 8px; font-size:.6875rem; font-weight:500; color:#bdc9db; background:#1b293d; white-space:nowrap; }
-    .badge.buy { color:#83e8c3; border-color:#37614f; background:#1c382e; }
-    .badge.watch { color:#f2d494; border-color:#685538; background:#342d22; }
-    .badge.sell,.badge.risk-high { color:#ffabb8; border-color:#754052; background:#3a2432; }
-    .badge.risk-low { color:#a0d9c2; border-color:#365a4a; background:#1c332c; }
-    .badge.risk-medium { color:#e1c68c; border-color:#5d5038; background:#302b22; }
-    .badge.bedrock { color:#9de5c9; background:#1a332b; border-color:#345b49; }
-    .badge.gemini { color:#cfbaff; background:#29243f; border-color:#54456f; }
-    .badge.rule { color:#f3cf86; background:#342d20; border-color:#665431; }
-    .badge.cache { color:#a1cbff; background:#1b2b44; border-color:#3d567a; }
-    .badge.snapshot { color:#c6cbd5; background:#2b2e39; border-color:#505668; }
-    .result-heading { display:flex; align-items:center; justify-content:space-between; gap:15px; }
-    .result-heading p { color:var(--subtle); font-size:.75rem; margin-top:3px; }
-    .result-heading select { width:auto; max-width:180px; min-height:39px; height:39px; font-size:.8125rem; }
+    .badge { display:inline-flex; align-items:center; gap:4px; border-radius:6px; border:1px solid var(--line); padding:4px 8px; font-size:.6875rem; font-weight:500; color:var(--muted); background:var(--raised); white-space:nowrap; }
+    .badge.buy { color:#7fd6ac; border-color:#4cc38a4d; background:#152620; }
+    .badge.watch { color:#e6cd96; border-color:#e3b45c4d; background:#282217; }
+    .badge.sell,.badge.risk-high { color:#f0a9b2; border-color:#e5484d4d; background:#2a1a1e; }
+    .badge.risk-low { color:#a8d9c0; border-color:#4cc38a40; background:#152620; }
+    .badge.risk-medium { color:#e6cd96; border-color:#e3b45c40; background:#282217; }
+    .badge.bedrock,.badge.gemini,.badge.rule,.badge.cache,.badge.snapshot { color:var(--muted); background:var(--raised); border-color:var(--line); }
+    .result-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .result-heading p { color:var(--subtle); font-size:.75rem; margin-top:4px; }
+    .result-heading select { width:auto; max-width:180px; min-height:40px; height:40px; font-size:.8125rem; }
     .results-list { display:grid; gap:16px; }
     .stock-card { overflow:hidden; scroll-margin-top:24px; }
     .stock-card:target { border-color:var(--green); }
-    .stock-main { padding:22px; }
+    .stock-main { padding:20px; }
     .stock-top { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
-    .stock-identity { display:flex; gap:11px; min-width:0; align-items:center; }
-    .stock-identity .ticker-avatar { width:42px; height:42px; font-size:.875rem; }
+    .stock-identity { display:flex; gap:12px; min-width:0; align-items:center; }
+    .stock-identity .ticker-avatar { width:40px; height:40px; font-size:.875rem; }
     .stock-title-row { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
-    .stock-title-row h3 { letter-spacing:.01em; }
-    .company-name { font-size:.75rem; color:var(--subtle); margin-top:3px; overflow-wrap:anywhere; }
+    .company-name { font-size:.75rem; color:var(--subtle); margin-top:4px; overflow-wrap:anywhere; }
     .stock-price { text-align:right; flex-shrink:0; }
-    .stock-price strong { font-size:23px; line-height:1.25; font-weight:600; }
-    .stock-price small { color:var(--subtle); font-size:.6875rem; margin-left:5px; }
-    .stock-price p { font-size:.75rem; margin-top:3px; }
-    .stock-insight { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(160px,.7fr); gap:28px; align-items:center; margin:20px 0 17px; }
-    .insight-label { display:flex; align-items:center; gap:8px; margin-bottom:7px; font-size:.6875rem; color:var(--muted); }
-    .insight-label .icon { width:14px; height:14px; color:var(--green); }
-    .trend-summary { font-size:.875rem; line-height:1.8; color:#d3ddeb; overflow-wrap:anywhere; }
+    .stock-price strong { font-size:24px; line-height:1.25; font-weight:500; }
+    .stock-price small { color:var(--subtle); font-size:.6875rem; margin-left:4px; }
+    .stock-price p { font-size:.75rem; margin-top:4px; }
+    .stock-insight { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(160px,.7fr); gap:24px; align-items:center; margin:20px 0 16px; }
+    .insight-label { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:.6875rem; color:var(--muted); }
+    .insight-label .icon { color:var(--subtle); }
+    .trend-summary { font-size:.875rem; line-height:1.8; color:var(--text); overflow-wrap:anywhere; }
     .score-meter { display:flex; align-items:center; gap:8px; font-size:.6875rem; color:var(--muted); margin-top:12px; }
-    .meter-track { height:4px; width:80px; background:#2b394f; border-radius:5px; overflow:hidden; }
+    .score-meter strong { font-weight:500; }
+    .meter-track { height:4px; width:80px; background:var(--raised); border-radius:2px; overflow:hidden; }
     .meter-track span { display:block; height:100%; background:var(--green); }
-    .sparkline-chart { height:58px; width:100%; }
+    .sparkline-chart { height:56px; width:100%; }
     .sparkline-caption { display:flex; justify-content:space-between; gap:8px; font-size:.6875rem; color:var(--subtle); margin-top:8px; }
-    .stock-provenance { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
+    .stock-provenance { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
     .stock-provenance time { margin-left:auto; color:var(--subtle); font-size:.6875rem; }
     .stock-details { border-top:1px solid var(--line); }
-    .stock-details>summary { padding:13px 22px; list-style:none; display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:.8125rem; color:var(--muted); cursor:pointer; background:#ffffff02; }
+    .stock-details>summary { padding:12px 20px; list-style:none; display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:.8125rem; color:var(--muted); cursor:pointer; background:#ffffff02; }
     .stock-details>summary::-webkit-details-marker { display:none; }
     .stock-details>summary:hover { color:var(--text); background:#ffffff05; }
-    .stock-details>summary .icon { width:15px; height:15px; transition:transform .2s; }
+    .stock-details>summary .icon { transition:transform .18s var(--ease); }
     .stock-details[open]>summary .icon { transform:rotate(180deg); }
-    .detail-content { border-top:1px solid var(--line); padding:22px; display:grid; gap:22px; }
-    .detail-title { font-size:.8125rem; font-weight:500; margin-bottom:12px; color:#c8d5e7; }
-    .plan-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
-    .plan-cell { padding:12px; background:#0d1626; border:1px solid var(--line); border-radius:10px; }
-    .plan-cell span { display:block; font-size:.6875rem; color:var(--subtle); margin-bottom:5px; }
+    .detail-content { border-top:1px solid var(--line); padding:20px; display:grid; gap:24px; }
+    .detail-title { font-size:.8125rem; font-weight:500; margin-bottom:12px; color:var(--muted); }
+    .plan-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .plan-cell { padding:12px; background:var(--field); border:1px solid var(--line); border-radius:8px; }
+    .plan-cell span { display:block; font-size:.6875rem; color:var(--subtle); margin-bottom:4px; }
     .plan-cell strong { display:block; font-size:.875rem; font-weight:500; overflow-wrap:anywhere; }
-    .checklist,.detail-list { margin:10px 0 0; padding:0; list-style:none; display:grid; gap:8px; }
+    .checklist,.detail-list { margin:8px 0 0; padding:0; list-style:none; display:grid; gap:8px; }
     .checklist li,.detail-list li { font-size:.8125rem; color:var(--muted); display:flex; align-items:flex-start; gap:8px; overflow-wrap:anywhere; }
-    .checklist .icon { width:14px; height:14px; margin-top:3px; color:var(--green); }
-    .detail-list li::before { content:''; width:4px; height:4px; flex-shrink:0; border-radius:50%; background:var(--subtle); margin-top:9px; }
-    .technical-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
-    .technical-cell { border:1px solid var(--line); border-radius:9px; padding:10px 12px; }
+    .checklist .icon { margin-top:4px; color:var(--green); }
+    .detail-list li::before { content:''; width:4px; height:4px; flex-shrink:0; border-radius:50%; background:var(--subtle); margin-top:8px; }
+    .technical-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .technical-cell { border:1px solid var(--line); border-radius:8px; padding:8px 12px; }
     .technical-cell span { display:block; font-size:.6875rem; color:var(--subtle); }
     .technical-cell strong { font-size:.875rem; font-weight:500; }
     .detail-columns { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
@@ -222,56 +210,54 @@
     .news-list li { padding-bottom:12px; border-bottom:1px solid var(--line); font-size:.8125rem; overflow-wrap:anywhere; }
     .news-list li:last-child { padding-bottom:0; border:0; }
     .news-list small { display:block; color:var(--subtle); font-size:.6875rem; margin-top:4px; }
-    .detail-note { padding:12px; border:1px solid #5b4b30; border-radius:9px; background:#28241c; color:#e2cd9e; font-size:.75rem; overflow-wrap:anywhere; }
-    .model-meta { font-size:.6875rem; color:var(--subtle); display:flex; flex-wrap:wrap; gap:6px 18px; overflow-wrap:anywhere; }
-    .error-card { padding:22px; border-color:#623649; }
-    .error-card p { color:#e7b4bf; font-size:.8125rem; margin:12px 0; }
-    .empty-state { text-align:center; padding:56px 28px; }
-    .empty-icon { width:64px; height:64px; margin:0 auto 19px; display:grid; place-items:center; color:var(--green); border:1px solid #35564a; border-radius:18px; background:#192f2b; }
-    .empty-icon .icon { width:29px; height:29px; }
-    .empty-state h2 { font-size:19px; }
-    .empty-state p { max-width:390px; margin:10px auto 20px; color:var(--muted); font-size:.8125rem; }
+    .detail-note { padding:12px; border:1px solid #e3b45c4d; border-radius:8px; background:#282217; color:#e6cd96; font-size:.75rem; overflow-wrap:anywhere; }
+    .model-meta { font-size:.6875rem; color:var(--subtle); display:flex; flex-wrap:wrap; gap:8px 16px; overflow-wrap:anywhere; }
+    .error-card { padding:20px; border-color:#e5484d4d; }
+    .error-card p { color:#f0a9b2; font-size:.8125rem; margin:12px 0; }
+    .empty-state { text-align:center; padding:56px 24px; }
+    .empty-icon { width:64px; height:64px; margin:0 auto 16px; display:grid; place-items:center; color:var(--subtle); border:1px solid var(--line); border-radius:16px; background:var(--raised); }
+    .empty-icon .icon { width:28px; height:28px; }
+    .empty-state h2 { font-size:20px; }
+    .empty-state p { max-width:390px; margin:8px auto 20px; color:var(--muted); font-size:.8125rem; }
     .empty-steps { display:flex; justify-content:center; flex-wrap:wrap; gap:16px; color:var(--subtle); font-size:.75rem; margin-top:24px; }
-    .empty-steps span { display:flex; align-items:center; gap:7px; }
-    .empty-steps b { width:21px; height:21px; display:grid; place-items:center; background:#223047; border-radius:50%; font-size:.6875rem; font-weight:500; }
+    .empty-steps span { display:flex; align-items:center; gap:8px; }
+    .empty-steps b { width:20px; height:20px; display:grid; place-items:center; background:var(--raised); border-radius:50%; font-size:.6875rem; font-weight:500; }
     .business-panel { max-width:1080px; margin:auto; }
-    .business-notice { display:flex; align-items:flex-start; gap:11px; padding:16px 20px; margin-bottom:22px; border:1px solid #3b4f69; background:#14243a; border-radius:12px; color:#b8cce6; font-size:.8125rem; }
-    .business-notice .icon { width:18px; height:18px; margin-top:2px; }
+    .business-notice { display:flex; align-items:flex-start; gap:12px; padding:16px 20px; margin-bottom:24px; border:1px solid var(--line); background:var(--panel-soft); border-radius:12px; color:var(--muted); font-size:.8125rem; }
+    .business-notice .icon { margin-top:2px; }
     .cost-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-bottom:24px; }
-    .cost-stat { padding:22px; }
+    .cost-stat { padding:20px; }
     .cost-stat p { font-size:.75rem; color:var(--muted); margin-bottom:8px; }
-    .cost-stat strong { font-size:26px; font-weight:500; }
+    .cost-stat strong { font-size:28px; font-weight:500; }
     .cost-stat small { color:var(--subtle); font-size:.75rem; }
-    .calculator-layout { display:grid; grid-template-columns:1.1fr 1fr; gap:22px; align-items:start; }
-    .calculator-inputs,.calculator-output { padding:25px; }
-    .calculator-fields { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:22px 0; }
-    .calculator-fields .field-label { min-height:38px; }
-    .calculator-output { background:#112725; border-color:#30554a; }
-    .calculation-row { display:flex; justify-content:space-between; gap:16px; padding:15px 0; border-bottom:1px solid #2b443f; font-size:.8125rem; color:#b6ccc4; }
+    .calculator-layout { display:grid; grid-template-columns:1.1fr 1fr; gap:24px; align-items:start; }
+    .calculator-inputs,.calculator-output { padding:24px; }
+    .calculator-fields { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:24px 0; }
+    .calculator-fields .field-label { min-height:40px; }
+    .calculation-row { display:flex; justify-content:space-between; gap:16px; padding:16px 0; border-bottom:1px solid var(--line); font-size:.8125rem; color:var(--muted); }
     .calculation-row strong { color:var(--text); font-weight:500; text-align:right; overflow-wrap:anywhere; }
     .profit-block { padding:24px 0; }
-    .profit-block p { font-size:.8125rem; color:#a9c8bb; }
-    .profit-block strong { display:block; font-size:30px; margin-top:5px; font-weight:500; overflow-wrap:anywhere; }
-    .calculator-output>.field-help { color:#9bb4a9; }
-    .calculator-warning { color:var(--amber); font-size:.8125rem; margin-top:15px; }
-    footer { max-width:1440px; margin:36px auto 0; padding:21px 36px 28px; color:var(--subtle); font-size:.6875rem; display:flex; justify-content:space-between; gap:18px; border-top:1px solid var(--line); }
-    .toast { position:fixed; z-index:70; right:24px; bottom:24px; max-width:min(410px,calc(100vw - 32px)); padding:14px 18px; border:1px solid #3c715d; border-radius:12px; background:#18372c; color:#d1f7e4; box-shadow:0 12px 40px #0006; font-size:.875rem; }
-    .toast[data-kind=error] { background:#382331; color:#ffccd5; border-color:#80455c; }
-    dialog { max-width:440px; width:calc(100% - 32px); padding:26px; border:1px solid #44516a; border-radius:18px; background:var(--panel); color:var(--text); box-shadow:0 24px 80px #0006; }
-    dialog::backdrop { background:#050a14bb; backdrop-filter:blur(4px); }
-    dialog h2 { margin-bottom:10px; }
+    .profit-block p { font-size:.8125rem; color:var(--muted); }
+    .profit-block strong { display:block; font-size:32px; margin-top:4px; font-weight:500; overflow-wrap:anywhere; }
+    .calculator-warning { color:var(--amber); font-size:.8125rem; margin-top:16px; }
+    footer { max-width:1440px; margin:32px auto 0; padding:20px 32px 24px; color:var(--subtle); font-size:.6875rem; display:flex; justify-content:space-between; gap:16px; border-top:1px solid var(--line); }
+    .toast { position:fixed; z-index:70; right:24px; bottom:24px; max-width:min(400px,calc(100vw - 32px)); padding:12px 16px; border:1px solid #4cc38a4d; border-radius:12px; background:#152620; color:#c9ecd9; box-shadow:0 12px 40px #0006; font-size:.875rem; }
+    .toast[data-kind=error] { background:#2a1a1e; color:#f0a9b2; border-color:#e5484d4d; }
+    dialog { max-width:440px; width:calc(100% - 32px); padding:24px; border:1px solid var(--line-strong); border-radius:16px; background:var(--panel); color:var(--text); box-shadow:0 24px 80px #0006; }
+    dialog::backdrop { background:#05070cbb; }
+    dialog h2 { margin-bottom:8px; }
     dialog p { color:var(--muted); font-size:.875rem; }
-    .dialog-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:24px; }
+    .dialog-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:24px; }
     .skeleton-card { padding:24px; }
-    .skeleton { background:#223048; border-radius:7px; position:relative; overflow:hidden; height:13px; }
-    .skeleton::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,#829ac315,transparent); transform:translateX(-100%); animation:shimmer 1.5s infinite; }
+    .skeleton { background:var(--raised); border-radius:4px; position:relative; overflow:hidden; height:12px; }
+    .skeleton::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,#eef0f50d,transparent); transform:translateX(-100%); animation:shimmer 1.5s infinite; }
     .skeleton-row { display:flex; justify-content:space-between; gap:16px; margin-bottom:24px; }
     .spinner { animation:spin 1s linear infinite; }
     @keyframes shimmer { to { transform:translateX(100%); } }
     @keyframes spin { to { transform:rotate(360deg); } }
-    @media (max-width:1180px) { .topbar-note { display:none; } .dashboard-grid { grid-template-columns:262px minmax(0,1fr); gap:20px; } .sidebar-body { padding:18px; } .health-body { grid-template-columns:1fr; gap:20px; } .signal-counts { display:grid; grid-template-columns:repeat(3,1fr); } .signal-count { display:flex; align-items:center; justify-content:center; gap:10px; padding:8px; } }
-    @media (max-width:800px) { .topbar-inner { padding:0 22px; gap:20px; } .shell { padding:24px 22px 0; } .dashboard-grid { grid-template-columns:1fr; gap:20px; } .sidebar { position:static; } .sidebar-toggle { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:15px 18px; cursor:pointer; list-style:none; font-size:.875rem; font-weight:500; } .sidebar-toggle::-webkit-details-marker { display:none; } .sidebar-toggle .icon { color:var(--subtle); width:16px; height:16px; } .sidebar[open] .sidebar-toggle { border-bottom:1px solid var(--line); } .sidebar[open] .sidebar-toggle>.icon { transform:rotate(180deg); } .sidebar .schedule { margin:0 18px 18px; } .health-body { grid-template-columns:minmax(0,1fr) auto; gap:20px; } .signal-counts { display:flex; } .signal-count { display:block; padding:10px; } .sidebar-body { display:grid; grid-template-columns:1fr 1fr; gap:24px; padding:20px; } .sidebar-divider { display:none; } .sidebar-action-section { grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; gap:8px 24px; border-top:1px solid var(--line); padding-top:18px; } .sidebar-action-section .refresh-option { grid-row:span 2; margin:0; } .sidebar-action-section>.field-help { margin:0; } footer { padding:20px 22px; flex-direction:column; gap:6px; } .calculator-layout { grid-template-columns:1fr; } }
-    @media (max-width:560px) { .topbar-inner { min-height:unset; flex-wrap:wrap; gap:0; padding:15px 18px 0; } .brand { width:100%; } .brand-title { font-size:15px; } .brand-mark { width:34px; height:34px; } .brand-caption { font-size:9px; } .navigation { width:100%; margin-top:13px; gap:0; } .nav-tab { padding:12px 14px; flex:1; justify-content:center; font-size:.8125rem; } .nav-tab .icon { width:16px; height:16px; } .shell { padding:22px 16px 0; } .page-heading { align-items:stretch; flex-direction:column; gap:16px; margin-bottom:20px; } .page-heading h1 { font-size:25px; } .page-heading p { font-size:.8125rem; } .heading-actions .button { width:100%; min-height:46px; } .sidebar-body { display:block; padding:18px; } .sidebar-divider { display:block; margin:20px 0; } .sidebar-action-section { display:block; border:0; padding:0; } .sidebar-action-section .refresh-option { margin-bottom:16px; } .sidebar-action-section>.field-help { margin-top:8px; } .context-line { font-size:.6875rem; } .health-panel { padding:20px; } .health-body { grid-template-columns:1fr; gap:20px; } .score-ring { width:80px; height:80px; } .score-ring strong { font-size:25px; } .health-verdict-title { font-size:17px; } .score-block { gap:15px; } .health-verdict { font-size:.75rem; } .signal-counts { display:grid; grid-template-columns:repeat(3,1fr); } .signal-count { display:flex; align-items:center; justify-content:center; gap:8px; padding:9px 4px; } .signal-count strong { font-size:21px; } .health-footer { font-size:.6875rem; } .table-heading { padding:16px; } .portfolio-table { min-width:620px; } .table-heading span { font-size:.6875rem; } .result-heading h2 { font-size:16px; } .result-heading select { max-width:138px; font-size:.75rem; } .stock-main { padding:18px; } .stock-identity { gap:8px; } .stock-identity .ticker-avatar { width:33px; height:33px; font-size:.6875rem; } .stock-title-row h3 { font-size:15px; } .stock-title-row { gap:5px; } .stock-price strong { font-size:19px; } .stock-price small { display:block; margin:2px 0 0; } .stock-price p { font-size:.6875rem; } .stock-insight { grid-template-columns:1fr; gap:16px; margin:17px 0; } .sparkline-chart { height:48px; } .stock-provenance time { width:100%; margin:5px 0 0; } .stock-details>summary { padding:13px 18px; font-size:.75rem; } .detail-content { padding:18px; } .plan-grid { grid-template-columns:1fr; } .plan-cell { display:flex; gap:12px; align-items:baseline; justify-content:space-between; } .plan-cell span { margin:0; flex-shrink:0; } .plan-cell strong { text-align:right; } .technical-grid { grid-template-columns:repeat(2,1fr); } .detail-columns { grid-template-columns:1fr; gap:18px; } .empty-state { padding:38px 20px; } .empty-state h2 { font-size:17px; } .empty-steps { gap:10px; font-size:.6875rem; } .cost-stats { gap:10px; grid-template-columns:1fr; } .cost-stat { padding:17px 20px; display:flex; justify-content:space-between; align-items:center; gap:12px; } .cost-stat p { margin:0; } .cost-stat strong { font-size:21px; } .calculator-inputs,.calculator-output { padding:20px; } .calculator-fields { gap:16px 12px; } .field-label { font-size:.75rem; } .profit-block strong { font-size:27px; } .toast { right:16px; bottom:16px; } }
+    @media (max-width:1180px) { .topbar-note { display:none; } .dashboard-grid { grid-template-columns:260px minmax(0,1fr); gap:20px; } .sidebar-body { padding:16px; } .health-body { grid-template-columns:1fr; gap:20px; } .signal-counts { display:grid; grid-template-columns:repeat(3,1fr); } .signal-count { display:flex; align-items:center; justify-content:center; gap:8px; padding:8px; } }
+    @media (max-width:800px) { .topbar-inner { padding:0 24px; gap:20px; } .shell { padding:24px 24px 0; } .dashboard-grid { grid-template-columns:1fr; gap:20px; } .sidebar { position:static; } .sidebar-toggle { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:16px; cursor:pointer; list-style:none; font-size:.875rem; font-weight:500; } .sidebar-toggle::-webkit-details-marker { display:none; } .sidebar-toggle .icon { color:var(--subtle); } .sidebar[open] .sidebar-toggle { border-bottom:1px solid var(--line); } .sidebar[open] .sidebar-toggle>.icon { transform:rotate(180deg); } .sidebar .schedule { margin:0 16px 16px; } .health-body { grid-template-columns:minmax(0,1fr) auto; gap:20px; } .signal-counts { display:flex; } .signal-count { display:block; padding:8px; } .sidebar-body { display:grid; grid-template-columns:1fr 1fr; gap:24px; padding:20px; } .sidebar-divider { display:none; } .sidebar-action-section { grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; gap:8px 24px; border-top:1px solid var(--line); padding-top:16px; } .sidebar-action-section .refresh-option { grid-row:span 2; margin:0; } .sidebar-action-section>.field-help { margin:0; } footer { padding:20px 24px; flex-direction:column; gap:8px; } .calculator-layout { grid-template-columns:1fr; } }
+    @media (max-width:560px) { .topbar-inner { min-height:unset; flex-wrap:wrap; gap:0; padding:16px 16px 0; } .brand { width:100%; } .brand-title { font-size:16px; } .brand-mark { width:32px; height:32px; } .brand-caption { font-size:.6875rem; } .navigation { width:100%; margin-top:12px; gap:0; } .nav-tab { padding:12px 16px; flex:1; justify-content:center; font-size:.8125rem; } .shell { padding:24px 16px 0; } .page-heading { align-items:stretch; flex-direction:column; gap:16px; margin-bottom:20px; } .page-heading h1 { font-size:24px; } .page-heading p { font-size:.8125rem; } .heading-actions .button { width:100%; min-height:48px; } .sidebar-body { display:block; padding:16px; } .sidebar-divider { display:block; margin:20px 0; } .sidebar-action-section { display:block; border:0; padding:0; } .sidebar-action-section .refresh-option { margin-bottom:16px; } .sidebar-action-section>.field-help { margin-top:8px; } .context-line { font-size:.6875rem; } .health-panel { padding:20px; } .health-body { grid-template-columns:1fr; gap:20px; } .score-ring { width:80px; height:80px; } .score-ring strong { font-size:24px; } .health-verdict-title { font-size:16px; } .score-block { gap:16px; } .health-verdict { font-size:.75rem; } .signal-counts { display:grid; grid-template-columns:repeat(3,1fr); } .signal-count { display:flex; align-items:center; justify-content:center; gap:8px; padding:8px 4px; } .signal-count strong { font-size:20px; } .health-footer { font-size:.6875rem; } .table-heading { padding:16px; } .portfolio-table { min-width:620px; } .table-heading span { font-size:.6875rem; } .result-heading h2 { font-size:16px; } .result-heading select { max-width:140px; font-size:.75rem; } .stock-main { padding:16px; } .stock-identity { gap:8px; } .stock-identity .ticker-avatar { width:32px; height:32px; font-size:.6875rem; } .stock-title-row h3 { font-size:16px; } .stock-title-row { gap:4px; } .stock-price strong { font-size:20px; } .stock-price small { display:block; margin:2px 0 0; } .stock-price p { font-size:.6875rem; } .stock-insight { grid-template-columns:1fr; gap:16px; margin:16px 0; } .sparkline-chart { height:48px; } .stock-provenance time { width:100%; margin:4px 0 0; } .stock-details>summary { padding:12px 16px; font-size:.75rem; } .detail-content { padding:16px; } .plan-grid { grid-template-columns:1fr; } .plan-cell { display:flex; gap:12px; align-items:baseline; justify-content:space-between; } .plan-cell span { margin:0; flex-shrink:0; } .plan-cell strong { text-align:right; } .technical-grid { grid-template-columns:repeat(2,1fr); } .detail-columns { grid-template-columns:1fr; gap:16px; } .empty-state { padding:40px 20px; } .empty-state h2 { font-size:16px; } .empty-steps { gap:8px; font-size:.6875rem; } .cost-stats { gap:8px; grid-template-columns:1fr; } .cost-stat { padding:16px 20px; display:flex; justify-content:space-between; align-items:center; gap:12px; } .cost-stat p { margin:0; } .cost-stat strong { font-size:20px; } .calculator-inputs,.calculator-output { padding:20px; } .calculator-fields { gap:16px 12px; } .field-label { font-size:.75rem; } .profit-block strong { font-size:28px; } .toast { right:16px; bottom:16px; } }
     @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
   </style>
 </head>
@@ -279,19 +265,19 @@
   <a class="skip-link" href="#main-content">ข้ามไปยังเนื้อหา</a>
   <header class="topbar">
     <div class="topbar-inner">
-      <div class="brand"><div class="brand-mark" data-icon="chart"></div><div><p class="brand-title">AI Equity <span>Co-Pilot</span></p><p class="brand-caption">YOUR INVESTMENT, IN PERSPECTIVE</p></div></div>
+      <div class="brand"><div class="brand-mark" data-icon="chart"></div><div><p class="brand-title">AI Equity Co-Pilot</p><p class="brand-caption">ผู้ช่วยวิเคราะห์หุ้นไทยและสหรัฐฯ</p></div></div>
       <nav class="navigation" role="tablist" aria-label="หน้าหลัก">
         <button id="tab-portfolio" class="nav-tab" role="tab" aria-selected="true" aria-controls="portfolio-view"><span data-icon="grid"></span>ภาพรวมพอร์ต</button>
         <button id="tab-business" class="nav-tab" role="tab" aria-selected="false" aria-controls="business-view" tabindex="-1"><span data-icon="calculator"></span>ธุรกิจและต้นทุน</button>
       </nav>
-      <div class="topbar-note"><span data-icon="layers"></span>TH / US EQUITIES</div>
+      <div class="topbar-note"><span data-icon="layers"></span>หุ้นไทย · หุ้นสหรัฐฯ</div>
     </div>
   </header>
   <main id="main-content" class="shell" tabindex="-1">
     <section id="portfolio-view" role="tabpanel" aria-labelledby="tab-portfolio">
       <div class="page-heading">
-        <div><span class="eyebrow">PORTFOLIO OVERVIEW</span><h1>ภาพรวมพอร์ตของคุณ</h1><p>เห็นภาพรวม เข้าใจความเสี่ยง ก่อนตัดสินใจลงทุน</p></div>
-        <div class="heading-actions"><button id="btn-analyze" class="button primary" disabled><span data-icon="sparkles"></span><span>วิเคราะห์พอร์ต</span></button></div>
+        <div><h1>ภาพรวมพอร์ตของคุณ</h1><p>เห็นภาพรวม เข้าใจความเสี่ยง ก่อนตัดสินใจลงทุน</p></div>
+        <div class="heading-actions"><button id="btn-analyze" class="button primary" disabled><span data-icon="activity"></span><span>วิเคราะห์พอร์ต</span></button></div>
       </div>
       <div class="dashboard-grid">
         <details id="workspace-panel" class="sidebar panel" open>
@@ -347,7 +333,7 @@
       </div>
     </section>
     <section id="business-view" class="business-panel" role="tabpanel" aria-labelledby="tab-business" hidden>
-      <div class="page-heading"><div><span class="eyebrow">BUSINESS &amp; COST</span><h1>มองต้นทุน ก่อนต่อยอดธุรกิจ</h1><p>ประมาณค่าใช้จ่ายและทดลองปรับแพ็กเกจให้เหมาะกับผู้ใช้ของคุณ</p></div></div>
+      <div class="page-heading"><div><h1>มองต้นทุน ก่อนต่อยอดธุรกิจ</h1><p>ประมาณค่าใช้จ่ายและทดลองปรับแพ็กเกจให้เหมาะกับผู้ใช้ของคุณ</p></div></div>
       <div class="business-notice"><span data-icon="info"></span><p>ตัวเลขนี้เป็นแบบจำลองจาก token และราคาที่กำหนด ไม่ใช่ยอดเรียกเก็บจริงของ AWS หรือ Google และไม่รวมทุกความพยายามที่ล้มเหลว ผลจาก Cache แสดงต้นทุนเดิม ไม่ใช่ค่าใช้จ่ายที่เกิดขึ้นใหม่</p></div>
       <div class="cost-stats"><div class="panel cost-stat"><p>ประมาณต้นทุนของผลที่แสดง</p><div><strong id="cost-last-thb" class="number positive">—</strong> <small>บาท</small></div></div><div class="panel cost-stat"><p>เฉลี่ยต่อหุ้นที่มีผลวิเคราะห์</p><div><strong id="cost-per-symbol" class="number">—</strong> <small>บาท</small></div></div><div class="panel cost-stat"><p>ประมาณต้นทุน AI ในหน่วย USD</p><div><strong id="cost-last-usd" class="number">—</strong> <small>USD</small></div></div></div>
       <div class="calculator-layout">
@@ -355,7 +341,7 @@
           <div class="calculator-fields"><label><span class="field-label">จำนวนลูกค้า (ราย)</span><input id="calc-customers" class="input number" type="number" min="1" step="1" value="100" required /></label><label><span class="field-label">ราคาแพ็กเกจ / เดือน (บาท)</span><input id="calc-price" class="input number" type="number" min="0" step="0.01" value="199" required /></label><label><span class="field-label">หุ้นที่วิเคราะห์ / ลูกค้า / วัน</span><input id="calc-analyses" class="input number" type="number" min="0" step="1" value="5" required /></label><label><span class="field-label">ต้นทุน AI / หุ้น / ครั้ง (บาท)</span><input id="calc-unit-cost" class="input number" type="number" min="0" step="any" value="0.035" required /></label><label><span class="field-label">ค่า AWS อื่น ๆ / เดือน (บาท)</span><input id="calc-fixed" class="input number" type="number" min="0" step="0.01" value="50" required /></label><label><span class="field-label">จำนวนวันที่วิเคราะห์ / เดือน</span><input id="calc-days" class="input number" type="number" min="1" max="31" step="1" value="30" required /></label></div>
           <button id="use-last-cost" class="button ghost full" disabled><span data-icon="arrow-down"></span>ใช้ต้นทุนเฉลี่ยจากผลที่แสดง</button><p id="calc-validation" class="calculator-warning" role="status" hidden></p>
         </section>
-        <section class="panel calculator-output" aria-labelledby="projection-title"><span class="eyebrow">MONTHLY PROJECTION</span><h2 id="projection-title">ภาพรวมต่อเดือน</h2><div class="calculation-row"><span>รายได้รวม</span><strong id="calc-revenue" class="number">—</strong></div><div class="calculation-row"><span>ต้นทุน AI + AWS ที่สมมติ</span><strong id="calc-cost" class="number">—</strong></div><div class="profit-block"><p>กำไรขั้นต้นโดยประมาณ</p><strong id="calc-profit" class="number positive">—</strong></div><div class="calculation-row"><span>อัตรากำไรขั้นต้น</span><strong id="calc-margin" class="number">—</strong></div><div class="calculation-row"><span>จุดคุ้มทุน (จำนวนลูกค้า)</span><strong id="calc-breakeven" class="number">—</strong></div><p class="field-help">ยังไม่รวมค่าแรง ภาษี การหาลูกค้า และค่าใช้จ่ายอื่น ๆ ตรวจสอบราคาของโมเดลและค่าใช้จ่ายจริงก่อนนำไปตั้งราคา</p></section>
+        <section class="panel calculator-output" aria-labelledby="projection-title"><h2 id="projection-title">ภาพรวมต่อเดือน</h2><div class="calculation-row"><span>รายได้รวม</span><strong id="calc-revenue" class="number">—</strong></div><div class="calculation-row"><span>ต้นทุน AI + AWS ที่สมมติ</span><strong id="calc-cost" class="number">—</strong></div><div class="profit-block"><p>กำไรขั้นต้นโดยประมาณ</p><strong id="calc-profit" class="number positive">—</strong></div><div class="calculation-row"><span>อัตรากำไรขั้นต้น</span><strong id="calc-margin" class="number">—</strong></div><div class="calculation-row"><span>จุดคุ้มทุน (จำนวนลูกค้า)</span><strong id="calc-breakeven" class="number">—</strong></div><p class="field-help">ยังไม่รวมค่าแรง ภาษี การหาลูกค้า และค่าใช้จ่ายอื่น ๆ ตรวจสอบราคาของโมเดลและค่าใช้จ่ายจริงก่อนนำไปตั้งราคา</p></section>
       </div>
     </section>
   </main>
@@ -368,9 +354,9 @@
     'use strict';
     const $ = id => document.getElementById(id);
     const paths = {
-      chart:'M4 19V5M4 19h16M8 14l4-5 4 2 4-7', grid:'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z', calculator:'M5 3h14v18H5zM8 7h8M8 11h1M15 11h1M8 15h1M15 15h1M8 18h1M15 18h1', layers:'m12 3 9 5-9 5-9-5 9-5M3 12l9 5 9-5M3 16l9 5 9-5', sparkles:'m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3M20 2v4M18 4h4', folder:'M3 7V5h6l2 2h10v13H3V7Z', chevron:'m6 9 6 6 6-6', info:'M12 11v6M12 7h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0', leaf:'M20 3C10 3 3 7 5 14s13 8 15-11ZM5 20l10-11', trend:'m3 17 6-6 4 4 8-10M15 5h6v6', plus:'M12 5v14M5 12h14', close:'m6 6 12 12M6 18 18 6', mail:'M3 5h18v14H3V5Zm0 1 9 7 9-7', clock:'M12 7v5l3 2M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0', activity:'M3 12h4l3-8 4 16 3-8h4', check:'m5 12 4 4L19 6', alert:'m12 3 10 18H2L12 3ZM12 9v5M12 17h.01', 'arrow-down':'M12 3v14m-5-5 5 5 5-5M4 19v2h16v-2', refresh:'M20 7v5h-5M4 17v-5h5M6 6a8 8 0 0 1 13 2M5 16a8 8 0 0 0 13 2'
+      chart:'M4 19V5M4 19h16M8 14l4-5 4 2 4-7', grid:'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z', calculator:'M5 3h14v18H5zM8 7h8M8 11h1M15 11h1M8 15h1M15 15h1M8 18h1M15 18h1', layers:'m12 3 9 5-9 5-9-5 9-5M3 12l9 5 9-5M3 16l9 5 9-5', folder:'M3 7V5h6l2 2h10v13H3V7Z', chevron:'m6 9 6 6 6-6', info:'M12 11v6M12 7h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0', leaf:'M20 3C10 3 3 7 5 14s13 8 15-11ZM5 20l10-11', trend:'m3 17 6-6 4 4 8-10M15 5h6v6', plus:'M12 5v14M5 12h14', close:'m6 6 12 12M6 18 18 6', mail:'M3 5h18v14H3V5Zm0 1 9 7 9-7', clock:'M12 7v5l3 2M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0', activity:'M3 12h4l3-8 4 16 3-8h4', check:'m5 12 4 4L19 6', alert:'m12 3 10 18H2L12 3ZM12 9v5M12 17h.01', 'arrow-down':'M12 3v14m-5-5 5 5 5-5M4 19v2h16v-2', refresh:'M20 7v5h-5M4 17v-5h5M6 6a8 8 0 0 1 13 2M5 16a8 8 0 0 0 13 2'
     };
-    function icon(name, extra='') { return '<svg class="icon '+extra+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(paths[name] || paths.info)+'"/></svg>'; }
+    function icon(name, extra='') { return '<svg class="icon '+extra+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(paths[name] || paths.info)+'"/></svg>'; }
     document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML=icon(el.dataset.icon); });
     const storage={get(key){try{return localStorage.getItem(key);}catch{return null;}},set(key,value){try{localStorage.setItem(key,value);}catch{}}};
     const validPersona=value=>value==='momentum'?'momentum':'dividend';
@@ -395,7 +381,7 @@
       const cache=state.snapshot?['สำเนาในเบราว์เซอร์','snapshot']:result.cache_hit?['Smart Cache','cache']:['วิเคราะห์ใหม่',''];
       return badge(source[0],source[1])+badge(cache[0],cache[1]);
     }
-    function avatar(symbol) { return '<span class="ticker-avatar '+(String(symbol).endsWith('.BK')?'thai':'')+'" aria-hidden="true">'+escapeHtml(String(symbol).slice(0,2))+'</span>'; }
+    function avatar(symbol) { return '<span class="ticker-avatar" aria-hidden="true">'+escapeHtml(String(symbol).slice(0,2))+'</span>'; }
     function summarize() {
       const valid=state.results.filter(validResult),counts={BUY:0,WATCH:0,SELL:0},risks={LOW:0,MEDIUM:0,HIGH:0};
       valid.forEach(item=>{counts[item.ai.signal in counts?item.ai.signal:'WATCH']++;risks[item.ai.risk_level in risks?item.ai.risk_level:'MEDIUM']++;});
@@ -412,7 +398,7 @@
       ['workspace-input','btn-load'].forEach(id=>{$(id).disabled=Boolean(state.busy);});
       document.querySelectorAll('.persona-btn,.remove-symbol').forEach(el=>{el.disabled=unavailable;});
       document.querySelectorAll('.quick-symbol').forEach(el=>{el.disabled=unavailable||state.symbols.length>=state.maxSymbols||state.symbols.includes(el.dataset.symbol);});
-      $('btn-analyze').innerHTML=icon(state.busy==='analyze'?'refresh':'sparkles',state.busy==='analyze'?'spinner':'')+'<span>'+(state.busy==='analyze'?'กำลังวิเคราะห์…':'วิเคราะห์พอร์ต')+'</span>';
+      $('btn-analyze').innerHTML=icon(state.busy==='analyze'?'refresh':'activity',state.busy==='analyze'?'spinner':'')+'<span>'+(state.busy==='analyze'?'กำลังวิเคราะห์…':'วิเคราะห์พอร์ต')+'</span>';
       $('btn-notify').innerHTML=icon(state.busy==='notify'?'refresh':'mail',state.busy==='notify'?'spinner':'')+(state.busy==='notify'?'กำลังส่งรายงาน…':'ส่งรายงานเข้าอีเมล');
       $('btn-load').textContent=state.busy==='load'?'รอ…':'โหลด';
       $('btn-add').innerHTML=icon(state.busy==='add'?'refresh':'plus',state.busy==='add'?'spinner':'');
@@ -441,8 +427,8 @@
     }
     function sparkline(series) {
       const values=(Array.isArray(series)?series:[]).filter(value=>typeof value==='number'&&Number.isFinite(value));if(values.length<2)return '<p class="small subtle">ข้อมูลไม่พอสำหรับกราฟราคา</p>';
-      const low=Math.min(...values),high=Math.max(...values),range=high-low||1,points=values.map((value,index)=>(index/(values.length-1)*240).toFixed(2)+','+(high===low?32:60-(value-low)/range*52).toFixed(2)).join(' '),up=values.at(-1)>=values[0],change=values[0]?(values.at(-1)/values[0]-1)*100:null,color=up?'#62dfb7':'#ff8c9e';
-      return '<div><svg class="sparkline-chart" viewBox="0 0 240 66" preserveAspectRatio="none" role="img" aria-label="แนวโน้มราคาปิด '+values.length+' วันซื้อขาย"><path d="M0 63H240" stroke="#2c394e" stroke-dasharray="3 4"/><polygon points="0,66 '+points+' 240,66" fill="'+color+'" opacity=".07"/><polyline points="'+points+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg><div class="sparkline-caption"><span>'+values.length+' วันซื้อขาย</span><span class="'+(up?'positive':'negative')+'">'+signed(change)+'</span></div></div>';
+      const low=Math.min(...values),high=Math.max(...values),range=high-low||1,points=values.map((value,index)=>(index/(values.length-1)*240).toFixed(2)+','+(high===low?32:60-(value-low)/range*52).toFixed(2)).join(' '),up=values.at(-1)>=values[0],change=values[0]?(values.at(-1)/values[0]-1)*100:null,color=up?'#4cc38a':'#e5484d';
+      return '<div><svg class="sparkline-chart" viewBox="0 0 240 66" preserveAspectRatio="none" role="img" aria-label="แนวโน้มราคาปิด '+values.length+' วันซื้อขาย"><path d="M0 63H240" stroke="#262b36" stroke-dasharray="3 4"/><polygon points="0,66 '+points+' 240,66" fill="'+color+'" opacity=".07"/><polyline points="'+points+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg><div class="sparkline-caption"><span>'+values.length+' วันซื้อขาย</span><span class="'+(up?'positive':'negative')+'">'+signed(change)+'</span></div></div>';
     }
     function detailList(title,items,check=false) { return '<div><h4 class="detail-title">'+escapeHtml(title)+'</h4><ul class="'+(check?'checklist':'detail-list')+'">'+(items?.length?items:['ไม่มีข้อมูลเพิ่มเติม']).map(item=>'<li>'+(check?icon('check'):'')+'<span>'+escapeHtml(item)+'</span></li>').join('')+'</ul></div>'; }
     function newsList(items,picks=false) { return '<ul class="news-list">'+items.map(item=>{const link=safeLink(item.url);return '<li>'+(link?'<a href="'+escapeHtml(link)+'" target="_blank" rel="noopener noreferrer">'+escapeHtml(item.title)+' ↗</a>':escapeHtml(item.title))+'<small>'+escapeHtml(picks?item.why:item.source||'แหล่งข่าวภายนอก')+'</small></li>';}).join('')+'</ul>'; }
@@ -451,13 +437,13 @@
       if(!validResult(result))return '<article id="'+id+'" class="panel stock-card error-card" tabindex="-1"><div class="section-heading"><h3>'+escapeHtml(result.symbol)+'</h3>'+badge('วิเคราะห์ไม่สำเร็จ','sell')+'</div><p>'+escapeHtml(result.error||'ข้อมูลผลวิเคราะห์ไม่สมบูรณ์')+'</p><button class="button ghost small-button" data-retry-analysis>'+icon('refresh')+'ดึงข้อมูลใหม่ทั้งพอร์ต</button></article>';
       const ai=result.ai,ind=result.indicators||{},plan=ai.action_plan||{},tone=numeric(ind.change_pct)?Number(ind.change_pct)<0?'negative':Number(ind.change_pct)>0?'positive':'muted':'muted';
       const technical=[['SMA20',fmt(ind.sma20)],['SMA50',fmt(ind.sma50)],['RSI14',fmt(ind.rsi14,1)],['ปริมาณเทียบเฉลี่ย 10 วัน',numeric(ind.volume_ratio)?fmt(ind.volume_ratio,1)+' เท่า':'—'],['Bias เทียบ SMA20',numeric(ind.bias20_pct)?fmt(ind.bias20_pct)+'%':'—'],['ระยะห่าง 52W High',numeric(ind.dist_high_52w_pct)?fmt(ind.dist_high_52w_pct)+'%':'—'],['ความผันผวน 20 วัน',numeric(ind.volatility_20d_pct)?fmt(ind.volatility_20d_pct)+'%/วัน':'—']];
-      return '<article id="'+id+'" class="panel stock-card" tabindex="-1"><div class="stock-main"><div class="stock-top"><div class="stock-identity">'+avatar(result.symbol)+'<div><div class="stock-title-row"><h3>'+escapeHtml(result.symbol)+'</h3>'+signalBadge(ai)+'</div><p class="company-name">'+escapeHtml(result.name||result.symbol)+'</p></div></div><div class="stock-price"><strong class="number">'+fmt(ind.price)+'</strong><small>'+escapeHtml(result.currency||'')+'</small><p class="number '+tone+'">'+signed(ind.change_pct)+' <span class="subtle">เทียบวันก่อน</span></p></div></div><div class="stock-insight"><div><div class="insight-label">'+icon('sparkles')+'มุมมอง'+(result.source==='rule_fallback'?'จากกฎเทคนิค':'จากการวิเคราะห์')+' '+riskBadge(ai)+'</div><p class="trend-summary">'+escapeHtml(ai.trend_summary||'ยังไม่มีบทสรุป')+'</p><div class="score-meter"><span>คะแนน</span><span class="meter-track" aria-hidden="true"><span style="width:'+score(ai.score)+'%"></span></span><strong class="number">'+fmt(ai.score,0)+'/100</strong></div></div>'+sparkline(result.spark)+'</div><div class="stock-provenance">'+sourceBadges(result)+'<time datetime="'+escapeHtml(result.analyzed_at||'')+'">'+escapeHtml(dateLabel(result.analyzed_at))+'</time></div></div><details class="stock-details" data-details="'+escapeHtml(result.symbol)+'"><summary><span>แผนเทรด ตัวชี้วัด และข่าวประกอบ</span>'+icon('chevron')+'</summary><div class="detail-content"><div><h4 class="detail-title">แผนประกอบการตัดสินใจ · '+escapeHtml(personaLabel(ai.persona||state.persona))+'</h4><div class="plan-grid"><div class="plan-cell"><span>จุดเข้าซื้อ</span><strong class="positive">'+escapeHtml(plan.entry_zone||'—')+'</strong></div><div class="plan-cell"><span>ตัดขาดทุน</span><strong class="negative">'+escapeHtml(plan.stop_loss||'—')+'</strong></div><div class="plan-cell"><span>เป้าทำกำไร</span><strong>'+escapeHtml(plan.take_profit||'—')+'</strong></div></div></div>'+detailList('เช็กลิสต์ก่อนตัดสินใจ',plan.checklist,true)+'<div><h4 class="detail-title">ตัวชี้วัดทางเทคนิค</h4><div class="technical-grid">'+technical.map(([label,value])=>'<div class="technical-cell"><span>'+escapeHtml(label)+'</span><strong class="number">'+escapeHtml(value)+'</strong></div>').join('')+'</div></div><div class="detail-columns">'+detailList('ปัจจัยสนับสนุน',ai.catalysts)+detailList('ความเสี่ยงที่ควรพิจารณา',ai.risks)+'</div>'+(ai.risk_reasons?.length?'<p class="detail-note">เหตุผลด้านความเสี่ยง: '+escapeHtml(ai.risk_reasons.join(' · '))+'</p>':'')+(ai.news_picks?.length?'<div><h4 class="detail-title">ข่าวที่เลือกประกอบการวิเคราะห์</h4>'+newsList(ai.news_picks.slice(0,3),true)+'</div>':'')+'<div><div class="section-heading"><h4 class="detail-title">ข่าวล่าสุด</h4>'+badge('อารมณ์ข่าว: '+(ai.news_tone||'ไม่ระบุ'))+'</div>'+(result.news?.length?newsList(result.news.slice(0,5)):'<p class="small subtle">ยังไม่มีข่าวจากแหล่งข้อมูลในรอบนี้ ไม่ได้หมายความว่าไม่มีข่าวเกี่ยวกับหุ้นนี้</p>')+'</div>'+(result.note?'<p class="detail-note">'+escapeHtml(result.note)+'</p>':'')+'<div class="model-meta"><span>โมเดล: '+escapeHtml(result.model_id||'—')+'</span><span>ประมาณต้นทุนผลนี้ '+fmt(result.cost?.thb,4)+' บาท</span></div></div></details></article>';
+      return '<article id="'+id+'" class="panel stock-card" tabindex="-1"><div class="stock-main"><div class="stock-top"><div class="stock-identity">'+avatar(result.symbol)+'<div><div class="stock-title-row"><h3>'+escapeHtml(result.symbol)+'</h3>'+signalBadge(ai)+'</div><p class="company-name">'+escapeHtml(result.name||result.symbol)+'</p></div></div><div class="stock-price"><strong class="number">'+fmt(ind.price)+'</strong><small>'+escapeHtml(result.currency||'')+'</small><p class="number '+tone+'">'+signed(ind.change_pct)+' <span class="subtle">เทียบวันก่อน</span></p></div></div><div class="stock-insight"><div><div class="insight-label">'+icon('activity')+'มุมมอง'+(result.source==='rule_fallback'?'จากกฎเทคนิค':'จากการวิเคราะห์')+' '+riskBadge(ai)+'</div><p class="trend-summary">'+escapeHtml(ai.trend_summary||'ยังไม่มีบทสรุป')+'</p><div class="score-meter"><span>คะแนน</span><span class="meter-track" aria-hidden="true"><span style="width:'+score(ai.score)+'%"></span></span><strong class="number">'+fmt(ai.score,0)+'/100</strong></div></div>'+sparkline(result.spark)+'</div><div class="stock-provenance">'+sourceBadges(result)+'<time datetime="'+escapeHtml(result.analyzed_at||'')+'">'+escapeHtml(dateLabel(result.analyzed_at))+'</time></div></div><details class="stock-details" data-details="'+escapeHtml(result.symbol)+'"><summary><span>แผนเทรด ตัวชี้วัด และข่าวประกอบ</span>'+icon('chevron')+'</summary><div class="detail-content"><div><h4 class="detail-title">แผนประกอบการตัดสินใจ · '+escapeHtml(personaLabel(ai.persona||state.persona))+'</h4><div class="plan-grid"><div class="plan-cell"><span>จุดเข้าซื้อ</span><strong class="positive">'+escapeHtml(plan.entry_zone||'—')+'</strong></div><div class="plan-cell"><span>ตัดขาดทุน</span><strong class="negative">'+escapeHtml(plan.stop_loss||'—')+'</strong></div><div class="plan-cell"><span>เป้าทำกำไร</span><strong>'+escapeHtml(plan.take_profit||'—')+'</strong></div></div></div>'+detailList('เช็กลิสต์ก่อนตัดสินใจ',plan.checklist,true)+'<div><h4 class="detail-title">ตัวชี้วัดทางเทคนิค</h4><div class="technical-grid">'+technical.map(([label,value])=>'<div class="technical-cell"><span>'+escapeHtml(label)+'</span><strong class="number">'+escapeHtml(value)+'</strong></div>').join('')+'</div></div><div class="detail-columns">'+detailList('ปัจจัยสนับสนุน',ai.catalysts)+detailList('ความเสี่ยงที่ควรพิจารณา',ai.risks)+'</div>'+(ai.risk_reasons?.length?'<p class="detail-note">เหตุผลด้านความเสี่ยง: '+escapeHtml(ai.risk_reasons.join(' · '))+'</p>':'')+(ai.news_picks?.length?'<div><h4 class="detail-title">ข่าวที่เลือกประกอบการวิเคราะห์</h4>'+newsList(ai.news_picks.slice(0,3),true)+'</div>':'')+'<div><div class="section-heading"><h4 class="detail-title">ข่าวล่าสุด</h4>'+badge('อารมณ์ข่าว: '+(ai.news_tone||'ไม่ระบุ'))+'</div>'+(result.news?.length?newsList(result.news.slice(0,5)):'<p class="small subtle">ยังไม่มีข่าวจากแหล่งข้อมูลในรอบนี้ ไม่ได้หมายความว่าไม่มีข่าวเกี่ยวกับหุ้นนี้</p>')+'</div>'+(result.note?'<p class="detail-note">'+escapeHtml(result.note)+'</p>':'')+'<div class="model-meta"><span>โมเดล: '+escapeHtml(result.model_id||'—')+'</span><span>ประมาณต้นทุนผลนี้ '+fmt(result.cost?.thb,4)+' บาท</span></div></div></details></article>';
     }
     function renderTable() {
       $('portfolio-rows').hidden=!state.results.length;if(!state.results.length){$('portfolio-rows').innerHTML='';return;}
       $('portfolio-rows').innerHTML='<div class="table-heading"><h2>มองพอร์ตในหน้าเดียว</h2><span>เลือกชื่อหุ้นเพื่อดูรายละเอียด</span></div><div class="table-scroll" tabindex="0" role="region" aria-label="ตารางหุ้น เลื่อนแนวนอนได้"><table class="portfolio-table"><thead><tr><th scope="col">หุ้น / สกุลเงิน</th><th scope="col">ราคา</th><th scope="col">เปลี่ยนแปลง</th><th scope="col">สัญญาณ</th><th scope="col">คะแนน</th><th scope="col">ความเสี่ยง</th></tr></thead><tbody>'+state.results.map(item=>{const valid=validResult(item),ind=item.indicators||{};return '<tr><td><a class="table-symbol" href="#'+escapeHtml(cardId(item.symbol))+'" data-focus-symbol="'+escapeHtml(item.symbol)+'">'+escapeHtml(item.symbol)+'<span>'+escapeHtml(item.currency||'—')+'</span></a></td><td class="number">'+fmt(ind.price)+'</td><td class="number '+(numeric(ind.change_pct)?Number(ind.change_pct)<0?'negative':Number(ind.change_pct)>0?'positive':'muted':'muted')+'">'+signed(ind.change_pct)+'</td><td>'+(valid?signalBadge(item.ai):badge('ไม่สำเร็จ','sell'))+'</td><td class="number">'+(valid?fmt(item.ai.score,0):'—')+'</td><td>'+(valid?riskBadge(item.ai):'—')+'</td></tr>';}).join('')+'</tbody></table></div>';
     }
-    function emptyState(title,message,action,label) { return '<div class="empty-icon">'+icon(action==='retry-load'?'alert':'chart')+'</div><h2>'+escapeHtml(title)+'</h2><p>'+escapeHtml(message)+'</p><button class="button '+(action==='analyze'?'primary':'ghost')+'" data-empty-action="'+action+'">'+icon(action==='retry-load'?'refresh':action==='add'?'plus':'sparkles')+escapeHtml(label)+'</button>'+(action==='add'?'<div class="empty-steps"><span><b>1</b>เพิ่มหุ้น</span><span><b>2</b>เลือกแนวทาง</span><span><b>3</b>เริ่มวิเคราะห์</span></div>':''); }
+    function emptyState(title,message,action,label) { return '<div class="empty-icon">'+icon(action==='retry-load'?'alert':'chart')+'</div><h2>'+escapeHtml(title)+'</h2><p>'+escapeHtml(message)+'</p><button class="button '+(action==='analyze'?'primary':'ghost')+'" data-empty-action="'+action+'">'+icon(action==='retry-load'?'refresh':action==='add'?'plus':'activity')+escapeHtml(label)+'</button>'+(action==='add'?'<div class="empty-steps"><span><b>1</b>เพิ่มหุ้น</span><span><b>2</b>เลือกแนวทาง</span><span><b>3</b>เริ่มวิเคราะห์</span></div>':''); }
     function renderResults() {
       renderTable();$('result-heading').hidden=!state.results.length;$('results-empty').hidden=true;
       if(state.busy&&!state.results.length){$('results').innerHTML=[0,1].map(()=>'<div class="panel skeleton-card" aria-hidden="true"><div class="skeleton-row"><div class="skeleton" style="height:24px;width:34%"></div><div class="skeleton" style="width:18%"></div></div><div class="skeleton" style="width:90%;margin-bottom:12px"></div><div class="skeleton" style="width:65%;margin-bottom:25px"></div><div class="skeleton" style="height:48px"></div></div>').join('');return;}
@@ -503,7 +489,7 @@
       const [customers,price,analyses,unitCost,fixed,days]=fields.map(input=>input.valueAsNumber),revenue=customers*price,cost=customers*analyses*days*unitCost+fixed,profit=revenue-cost,perCustomerMargin=price-analyses*days*unitCost;
       const good=valid&&[revenue,cost,profit].every(Number.isFinite);$('calc-validation').hidden=good;$('calc-validation').textContent='กรุณากรอกตัวเลขให้ครบตามช่วงที่กำหนด และไม่ใช้ค่าที่สูงเกินคำนวณได้';
       if(!good){['calc-revenue','calc-cost','calc-profit','calc-margin','calc-breakeven'].forEach(id=>{$(id).textContent='—';});return;}
-      $('calc-revenue').textContent=fmt(revenue,0)+' บาท';$('calc-cost').textContent=fmt(cost)+' บาท';$('calc-profit').textContent=fmt(profit)+' บาท';$('calc-profit').className='number '+(profit>=0?'positive':'negative');$('calc-margin').textContent=revenue?fmt(profit/revenue*100,1)+'%':'— (ยังไม่มีรายได้)';$('calc-breakeven').textContent=perCustomerMargin>0?fmt(Math.ceil(fixed/perCustomerMargin),0)+' ราย':'ยังไม่คุ้มทุนที่ราคานี้';
+      $('calc-revenue').textContent=fmt(revenue,2)+' บาท';$('calc-cost').textContent=fmt(cost)+' บาท';$('calc-profit').textContent=fmt(profit)+' บาท';$('calc-profit').className='number '+(profit>=0?'positive':'negative');$('calc-margin').textContent=revenue?fmt(profit/revenue*100,1)+'%':'— (ยังไม่มีรายได้)';$('calc-breakeven').textContent=perCustomerMargin>0?fmt(Math.ceil(fixed/perCustomerMargin),0)+' ราย':'ยังไม่คุ้มทุนที่ราคานี้';
     }
     function switchView(view) { state.view=view;['portfolio','business'].forEach(name=>{$(name+'-view').hidden=name!==view;$('tab-'+name).setAttribute('aria-selected',String(name===view));$('tab-'+name).tabIndex=name===view?0:-1;});document.title='AI Equity Co-Pilot — '+(view==='portfolio'?'ภาพรวมพอร์ต':'ธุรกิจและต้นทุน');if(view==='business'){renderSummary();controls();recalc();} }
     function renderCron() { const now=new Date();for(let offset=0;offset<8;offset++){const candidate=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()+offset,10,15));if(candidate.getUTCDay()>0&&candidate.getUTCDay()<6&&candidate>now){const minutes=Math.max(1,Math.ceil((candidate-now)/60000));$('cron-text').textContent='17:15 น. เวลาไทย · อีก '+(minutes>=60?Math.floor(minutes/60)+' ชม. '+minutes%60+' น.':minutes+' นาที');return;}} }
