@@ -93,6 +93,27 @@ Resources:
       Protocol: email
       Endpoint: !Ref AlertEmail
 
+  # ที่เก็บสำเนารายงาน (JSON) ไว้ตรวจย้อนหลัง — ไม่ได้ใช้ทำ static hosting
+  # Learner Lab: LabRole มีสิทธิ์ s3:* อยู่แล้ว จึงไม่ต้องสร้าง policy เพิ่ม
+  ReportBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-report-copies
+            Status: Enabled
+            Prefix: reports/
+            ExpirationInDays: 30
+
   StockCopilotFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -114,6 +135,7 @@ Resources:
           GEMINI_API_KEY: !Ref GeminiApiKey
           GEMINI_MODEL_ID: !Ref GeminiModelId
           CACHE_TTL_SECONDS: !Ref CacheTtlSeconds
+          REPORT_BUCKET: !Ref ReportBucket
           USD_TO_THB: "36.0"
           MAX_SYMBOLS: "10"
       FunctionUrlConfig:
@@ -147,6 +169,10 @@ Outputs:
   SNSTopicArn:
     Description: ARN ของ SNS Topic สำหรับแจ้งเตือนทางอีเมล
     Value: !Ref AlertTopic
+
+  ReportBucketName:
+    Description: ชื่อ S3 bucket ที่เก็บสำเนารายงาน JSON (reports/...)
+    Value: !Ref ReportBucket
 
   ExecutionRole:
     Description: IAM role ที่ Lambda ใช้ (ต้องเป็น LabRole ใน Learner Lab)

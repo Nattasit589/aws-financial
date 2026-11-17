@@ -149,6 +149,42 @@ class CacheTests(unittest.TestCase):
         self.assertFalse(result["cache_hit"])
 
 
+class ReportArchiveTests(unittest.TestCase):
+    """สำเนารายงานลง S3: path ต้องคงที่ต่อวัน/พอร์ต และต้องไม่ทำรายงานอีเมลล้มเหลว"""
+
+    def setUp(self):
+        self.s3 = MagicMock()
+        self.enterContext(patch.object(db, "_s3", self.s3))
+        self.enterContext(patch.object(db, "REPORT_BUCKET", "copilot-reports"))
+
+    def test_report_copy_uses_daily_key_and_returns_s3_uri(self):
+        uri = db.export_report_json(
+            "test",
+            "dividend",
+            [{"symbol": "PTT.BK", "indicators": {"price": Decimal("34.5")}}],
+            {"avg_score": 60, "counts": {"BUY": 0, "WATCH": 1, "SELL": 0}},
+            "scheduled",
+        )
+        self.assertRegex(uri, r"^s3://copilot-reports/reports/TEST/\d{4}-\d{2}-\d{2}/scheduled\.json$")
+        call = self.s3.put_object.call_args.kwargs
+        self.assertEqual(call["Bucket"], "copilot-reports")
+        self.assertEqual(call["ContentType"], "application/json; charset=utf-8")
+        payload = json.loads(call["Body"].decode("utf-8"))
+        self.assertEqual(payload["report_kind"], "scheduled")
+        self.assertEqual(payload["results"][0]["indicators"]["price"], 34.5)
+
+    def test_missing_bucket_or_s3_error_never_breaks_report(self):
+        with patch.object(db, "REPORT_BUCKET", ""):
+            self.assertEqual(db.export_report_json("TEST", "dividend", [], {}, "manual"), "")
+        self.s3.put_object.assert_not_called()
+
+        self.s3.put_object.side_effect = ClientError(
+            {"Error": {"Code": "AccessDenied", "Message": "simulated"}}, "PutObject"
+        )
+        with self.assertLogs(db.logger, level="WARNING"):
+            self.assertEqual(db.export_report_json("TEST", "dividend", [], {}, "manual"), "")
+
+
 class PreflightTests(unittest.TestCase):
     def setUp(self):
         self.clients = {service: MagicMock() for service in (

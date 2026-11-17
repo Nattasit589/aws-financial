@@ -52,7 +52,7 @@ docker --version
 2. ตั้งชื่อ เช่น `equity-copilot-dev` → ไม่ต้องเปิด console access
 3. **Attach policies directly** → `AdministratorAccess`
    - สำหรับบัญชีเรียน/แล็บใช้ AdministratorAccess เพื่อความเร็ว
-   - บัญชีจริงควรจำกัดสิทธิ์: CloudFormation, Lambda, DynamoDB, SNS, IAM Role, S3 (เก็บ artifact), CloudWatch Logs, Bedrock
+   - บัญชีจริงควรจำกัดสิทธิ์: CloudFormation, Lambda, DynamoDB, SNS, IAM Role, S3 (เก็บ artifact + สำเนารายงาน), CloudWatch Logs, Bedrock
 4. **Security credentials** → **Create access key** → เลือก *Application running outside AWS*
 5. คัดลอก **Access key ID** และ **Secret access key** (เห็นครั้งเดียว)
 
@@ -231,11 +231,12 @@ curl -X POST "<DashboardUrl>api/workspace/TEST-GROUP1/analyze" \
 
 ---
 
-## 9. ตรวจสอบว่าทั้ง 5 บริการทำงาน
+## 9. ตรวจสอบว่าทั้ง 6 บริการทำงาน
 
 ```bash
 aws lambda get-function-url-config --function-name ai-equity-copilot-app
 aws dynamodb scan --table-name "<DynamoDBTableName>" --max-items 5
+aws s3 ls "s3://<ReportBucketName>/reports/" --recursive
 aws sns list-subscriptions-by-topic --topic-arn "<SNSTopicArn>"
 aws events describe-rule --name daily-market-close-analysis
 aws logs tail /aws/lambda/ai-equity-copilot-app --follow

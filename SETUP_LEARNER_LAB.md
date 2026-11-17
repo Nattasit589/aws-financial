@@ -135,7 +135,7 @@ python3 scripts/preflight.py
 ไม่ต้องทำอะไร ระบบจะใช้ AI จริง (`amazon.nova-lite-v1:0`) และการ์ดผลวิเคราะห์จะขึ้นป้าย **Live Bedrock AI**
 
 ### 4.2 ถ้า preflight ไม่ผ่าน
-แอป **ยังทำงานครบ 5 บริการ** และจะไล่ตามลำดับ **Bedrock → Google Gemini (ถ้าตั้ง key) → rule-based** (ป้ายบนการ์ดจะระบุว่าผลมาจากชั้นไหน + มีคำอธิบายสีเหลืองท้ายการ์ด) ซึ่งยังนับเป็นระบบอัตโนมัติเต็มรูปแบบตามเกณฑ์ Level 4 แต่ควรลองตามลำดับนี้ก่อนยอมแพ้:
+แอป **ยังทำงานครบทุกบริการ** และจะไล่ตามลำดับ **Bedrock → Google Gemini (ถ้าตั้ง key) → rule-based** (ป้ายบนการ์ดจะระบุว่าผลมาจากชั้นไหน + มีคำอธิบายสีเหลืองท้ายการ์ด) ซึ่งยังนับเป็นระบบอัตโนมัติเต็มรูปแบบตามเกณฑ์ Level 4 แต่ควรลองตามลำดับนี้ก่อนยอมแพ้:
 
 **ลำดับที่ 0 — เปิด AI สำรอง Google Gemini (ไม่บังคับ)**
 
@@ -283,7 +283,7 @@ aws sns list-subscriptions-by-topic --topic-arn "<SNSTopicArn>" \
 
 ---
 
-## 9. พิสูจน์ทั้ง 5 บริการตอนเดโม
+## 9. พิสูจน์ทั้ง 6 บริการตอนเดโม
 
 รันใน terminal ที่มี credential (เครื่องตัวเอง หรือ terminal ในหน้า Learner Lab)
 
@@ -293,6 +293,9 @@ aws lambda get-function-url-config --function-name ai-equity-copilot-app
 
 # 2) DynamoDB (ต้องเห็น item ของ Workspace ที่เพิ่งใช้)
 aws dynamodb scan --table-name "<DynamoDBTableName>" --max-items 5
+
+# 2.5) S3 (ต้องเห็นสำเนารายงาน reports/<พอร์ต>/<วันที่>/...)
+aws s3 ls "s3://<ReportBucketName>/reports/" --recursive
 
 # 3) SNS (ต้องมี subscription ที่ confirmed)
 aws sns list-subscriptions-by-topic --topic-arn "<SNSTopicArn>"
@@ -367,7 +370,7 @@ sam delete --stack-name ai-equity-copilot
 - [ ] เตรียม Workspace Code สำหรับเดโม เช่น `DEMO-CS446`
 - [ ] เตรียม screenshot หน้าเว็บ + DynamoDB + อีเมล ไว้เป็น fallback ถ้าเน็ตห้องสอบมีปัญหา
 - [ ] จด Region (`us-east-1`), Stack Name, และ Model ID ให้ตรงกับสไลด์
-- [ ] ถ้า Bedrock ถูกบล็อก: เตรียมคำอธิบาย fallback + หลักฐานว่าแอปยังทำงานครบ 5 บริการ
+- [ ] ถ้า Bedrock ถูกบล็อก: เตรียมคำอธิบาย fallback + หลักฐานว่าแอปยังทำงานครบทุกบริการ
 
 ---
 

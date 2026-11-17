@@ -40,7 +40,7 @@ bash scripts/deploy_learnerlab.sh
 Learner Lab มักไม่ให้สิทธิ์ `bedrock:InvokeModel` ทำให้ระบบต้องสรุปด้วยกฎเทคนิค (ป้าย **กฎเทคนิค · ไม่ใช่ AI**) ถ้าใส่ key นี้ ระบบจะเรียก **Gemini** เป็น AI สำรองก่อนตกไปกฎเทคนิค — ไม่ใส่ก็ใช้ระบบได้ครบทุกฟีเจอร์
 
 - key จะถูกส่งเป็น **Parameter ของ CloudFormation** (`NoEcho: true`) แล้ว SAM ฉีดเป็น environment variable `GEMINI_API_KEY` ให้ Lambda — **ไม่มี key ใน git**
-- **ไม่มีการเพิ่ม AWS service ใด ๆ** (ยังคง Lambda, DynamoDB, Bedrock, EventBridge, SNS = 5 บริการ)
+- **ไม่มีการเพิ่ม AWS service ใด ๆ** (ยังคง Lambda, DynamoDB, S3, Bedrock, EventBridge, SNS)
 - ไม่เพิ่ม dependency ใน `requirements.txt` (ใช้ `urllib` จาก standard library)
 - ลำดับการเลือก AI: **Bedrock → Gemini → กฎเทคนิค**
 - เปลี่ยนโมเดล Gemini ได้ที่ `GeminiModelId` ตอน `sam deploy` (ค่าเริ่มต้น `gemini-3.5-flash-lite`) — ไม่ต้องแก้โค้ด
@@ -53,7 +53,7 @@ Learner Lab มักไม่ให้สิทธิ์ `bedrock:InvokeModel` 
 3. เลือกวิธี build ที่ตรงกับ runtime `python3.12` (ใช้ Python 3.12 ที่เพิ่งติดตั้ง / Docker ถ้ามี)
 4. ติดตั้ง `boto3` ถ้าจำเป็น แล้วรัน preflight ตรวจสิทธิ์ Bedrock + บริการที่ต้องใช้
 5. `sam build` → `sam deploy` ด้วย `.aws-sam/build/template.yaml` (template ที่มีไลบรารีครบ) แบบไม่ต้องตอบคำถาม
-6. ส่ง `GeminiApiKey` (ถ้ากรอก key ตอนสคริปต์ถาม) และพิมพ์ **DashboardUrl** ให้เปิดใช้งานทันที
+6. ส่ง `GeminiApiKey` (ถ้ากรอก key ตอนสคริปต์ถาม) และพิมพ์ **DashboardUrl** / **ReportBucketName** ให้เปิดใช้งานทันที
 
 > **หมายเหตุ:** หาก preflight แจ้งว่า Bedrock ถูกปฏิเสธสิทธิ์ (`AccessDeniedException`) ไม่ต้องกังวล ระบบจะใช้ **AI สำรอง Google Gemini** ก่อน (เมื่อกรอก key ตอนสคริปต์ถาม) ถ้าไม่มี key จะสลับไปใช้กฎเทคนิค — ป้ายบนการ์ดระบุชัดเจนทุกกรณี และแอปทำงานครบทุกฟีเจอร์
 
@@ -99,6 +99,8 @@ sam deploy \
 cd /tmp/aws-financial && bash scripts/deploy_learnerlab.sh --delete
 rm -rf /tmp/aws-financial /tmp/pip-cache
 ```
+
+> สคริปต์จะล้างไฟล์ใน S3 bucket ของรายงาน (`ReportBucketName`) ให้ก่อน เพราะ CloudFormation ลบ bucket ที่ยังมีไฟล์อยู่ไม่ได้ — ถ้า `sam delete` ล้มเหลว ให้เปิดคอนโซล S3 ลบไฟล์ใน bucket แล้วรัน `--delete` ซ้ำ
 
 ---
 

@@ -87,7 +87,27 @@ Resources:
       Protocol: email
       Endpoint: !Ref AlertEmail
 
-  # ---------- 3) AWS Lambda + Function URL, 4) EventBridge Schedule ----------
+  # ---------- 3) Amazon S3 : ที่เก็บสำเนารายงาน JSON ----------
+  ReportBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-report-copies
+            Status: Enabled
+            Prefix: reports/
+            ExpirationInDays: 30
+
+  # ---------- 4) AWS Lambda + Function URL, 5) EventBridge Schedule ----------
   StockCopilotFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -104,6 +124,7 @@ Resources:
           GEMINI_API_KEY: !Ref GeminiApiKey
           GEMINI_MODEL_ID: !Ref GeminiModelId
           CACHE_TTL_SECONDS: !Ref CacheTtlSeconds
+          REPORT_BUCKET: !Ref ReportBucket
           USD_TO_THB: "36.0"
           MAX_SYMBOLS: "10"
       FunctionUrlConfig:
@@ -132,6 +153,12 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
+                - s3:PutObject
+              Resource:
+                - !Sub "${ReportBucket.Arn}/*"
+        - Statement:
+            - Effect: Allow
+              Action:
                 - bedrock:InvokeModel
                 - bedrock:InvokeModelWithResponseStream
               Resource:
@@ -150,3 +177,7 @@ Outputs:
   SNSTopicArn:
     Description: ARN ของ SNS Topic สำหรับแจ้งเตือนทางอีเมล
     Value: !Ref AlertTopic
+
+  ReportBucketName:
+    Description: ชื่อ S3 bucket ที่เก็บสำเนารายงาน JSON (reports/...)
+    Value: !Ref ReportBucket

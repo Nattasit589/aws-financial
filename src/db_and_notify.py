@@ -1,20 +1,29 @@
-"""db_and_notify.py — จัดการ Watchlist / Smart Cache บน Amazon DynamoDB และส่งอีเมลผ่าน Amazon SNS
+"""db_and_notify.py — จัดการ Watchlist / Smart Cache บน Amazon DynamoDB,
+เก็บสำเนารายงานบน Amazon S3 และส่งอีเมลผ่าน Amazon SNS
 
 Single-Table Design:
 - Watchlist : pk = WORKSPACE#{workspace_id}, sk = WATCHLIST
 - ผลวิเคราะห์: pk = WORKSPACE#{workspace_id}, sk = ANALYSIS#{symbol}#{persona} (มี TTL)
+
+S3 Layout (สำเนารายงานไว้ตรวจย้อนหลัง):
+- reports/{workspace_id}/{YYYY-MM-DD}/{manual|scheduled}.json
 """
 
 from __future__ import annotations
 
+import json
+import logging
 import os
 import re
 import time
 from datetime import datetime, timezone
 from decimal import Decimal
 
+logger = logging.getLogger("equity-copilot.storage")
+
 TABLE_NAME = os.environ.get("PORTFOLIO_TABLE", "PortfolioTable")
 SNS_TOPIC_ARN = os.environ.get("SNS_TOPIC_ARN", "")
+REPORT_BUCKET = os.environ.get("REPORT_BUCKET", "")
 CACHE_TTL_SECONDS = int(os.environ.get("CACHE_TTL_SECONDS", "3600"))
 MAX_SYMBOLS = int(os.environ.get("MAX_SYMBOLS", "10"))
 DEFAULT_PERSONA = "dividend"
@@ -23,6 +32,7 @@ VALID_PERSONAS = ("dividend", "momentum")
 _resource = None
 _table = None
 _sns = None
+_s3 = None
 
 
 class WorkspaceError(Exception):
@@ -50,6 +60,15 @@ def _sns_client():
 
         _sns = boto3.client("sns")
     return _sns
+
+
+def _s3_client():
+    global _s3
+    if _s3 is None:
+        import boto3
+
+        _s3 = boto3.client("s3")
+    return _s3
 
 
 def normalize_workspace(raw: str) -> str:
@@ -202,6 +221,48 @@ def delete_analysis(workspace_id: str, symbol: str, persona: str) -> None:
     _dynamo_table().delete_item(
         Key=_analysis_key(normalize_workspace(workspace_id), symbol, persona)
     )
+
+
+# --------------------------------------------------------------------------
+# Amazon S3
+# --------------------------------------------------------------------------
+def export_report_json(
+    workspace_id: str,
+    persona: str,
+    results: list[dict],
+    summary: dict,
+    report_kind: str = "manual",
+) -> str:
+    """เก็บสำเนารายงานรอบนี้เป็น JSON ลง S3 แล้วคืนค่า s3://bucket/key
+
+    การเก็บสำเนาต้องไม่ทำให้การส่งอีเมลล้มเหลว: ถ้าไม่มี bucket ตั้งค่าไว้หรือ
+    เขียนไม่สำเร็จ (เช่นสิทธิ์ S3 ไม่พอ) จะคืน "" และเขียน log ไว้แทน
+    """
+    if not REPORT_BUCKET:
+        return ""
+    try:
+        workspace = normalize_workspace(workspace_id)
+        day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        key = f"reports/{workspace}/{day}/{report_kind}.json"
+        payload = {
+            "workspace_id": workspace,
+            "persona": persona,
+            "report_kind": report_kind,
+            "generated_at": _now_iso(),
+            "summary": summary,
+            "results": results,
+        }
+        body = json.dumps(to_jsonable(payload), ensure_ascii=False).encode("utf-8")
+        _s3_client().put_object(
+            Bucket=REPORT_BUCKET,
+            Key=key,
+            Body=body,
+            ContentType="application/json; charset=utf-8",
+        )
+    except Exception as exc:  # noqa: BLE001 - เก็บสำเนาไม่สำเร็จต้องไม่ล้มรายงาน
+        logger.warning("เก็บสำเนารายงานลง S3 ไม่สำเร็จ: %s", exc.__class__.__name__)
+        return ""
+    return f"s3://{REPORT_BUCKET}/{key}"
 
 
 # --------------------------------------------------------------------------

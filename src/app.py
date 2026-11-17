@@ -3,6 +3,7 @@
 1) HTTP (Lambda Function URL) -> FastAPI ผ่าน Mangum : เสิร์ฟหน้าเว็บ + REST API
 2) EventBridge Scheduled Event -> วิเคราะห์ทุก Workspace อัตโนมัติและส่งอีเมลสรุปผ่าน SNS
 
+ทุกรายงานที่ส่งออกจะเก็บสำเนาเป็น JSON ลง Amazon S3 (reports/...) เพื่อตรวจย้อนหลัง
 ไม่ใช้ S3 static hosting และไม่ใช้ API Gateway ตามข้อกำหนดของโปรเจกต์
 """
 
@@ -309,6 +310,11 @@ async def notify_workspace(workspace_id: str, request: Request) -> JSONResponse:
         results = _collect_results(workspace["workspace_id"], workspace["persona"], False)
         summary = _summary(results)
         subject, message = db.build_report_email(workspace["workspace_id"], workspace["persona"], results, summary)
+        archive_uri = db.export_report_json(
+            workspace["workspace_id"], workspace["persona"], results, summary, "manual"
+        )
+        if archive_uri:
+            message += f"\nสำเนารายงาน (JSON บน Amazon S3): {archive_uri}\n"
         message_id = db.send_email(subject, message)
         return JSONResponse(
             content={
@@ -316,6 +322,7 @@ async def notify_workspace(workspace_id: str, request: Request) -> JSONResponse:
                 "message": "ส่งรายงานเข้าอีเมลที่ผูกกับ Amazon SNS แล้ว",
                 "message_id": message_id,
                 "summary": summary,
+                "report_s3_uri": archive_uri,
             }
         )
     except db.WorkspaceError as exc:
@@ -361,6 +368,11 @@ def run_scheduled_report() -> dict:
             subject, message = db.build_report_email(
                 workspace["workspace_id"], workspace["persona"], results, summary
             )
+            archive_uri = db.export_report_json(
+                workspace["workspace_id"], workspace["persona"], results, summary, "scheduled"
+            )
+            if archive_uri:
+                message += f"\nสำเนารายงาน (JSON บน Amazon S3): {archive_uri}\n"
             blocks.append(message)
         except Exception:  # noqa: BLE001 - Workspace เดียวพังต้องไม่ล้มทั้งรอบ
             logger.exception("วิเคราะห์ Workspace %s ไม่สำเร็จ", workspace_id)

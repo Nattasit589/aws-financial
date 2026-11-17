@@ -97,6 +97,13 @@ ok "account ${ACCOUNT:-unknown}"
 if [[ "$DO_DELETE" == "1" ]]; then
   info "ลบ stack $STACK_NAME (region $REGION)"
   command -v sam >/dev/null 2>&1 || die "ไม่พบ sam CLI"
+  # CloudFormation ลบ S3 bucket ไม่ได้ถ้ายับมีไฟล์อยู่ → เก็บกวาดสำเนารายงานก่อน
+  REPORT_BUCKET_NAME="$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$REGION" \
+    --query "Stacks[0].Outputs[?OutputKey=='ReportBucketName'].OutputValue" --output text 2>/dev/null || true)"
+  if [[ -n "$REPORT_BUCKET_NAME" && "$REPORT_BUCKET_NAME" != "None" ]]; then
+    info "ล้างไฟล์ใน S3 bucket $REPORT_BUCKET_NAME ก่อนลบ stack"
+    aws s3 rm "s3://$REPORT_BUCKET_NAME" --recursive --region "$REGION" >/dev/null 2>&1 || warn "ล้าง bucket ไม่ครบ — ถ้า sam delete ล้มเหลว ให้ลบ bucket ในคอนโซล S3 เอง"
+  fi
   sam delete --stack-name "$STACK_NAME" --region "$REGION" --no-prompts
   ok "ลบเรียบร้อย"
   exit 0

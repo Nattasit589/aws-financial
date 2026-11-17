@@ -9,15 +9,16 @@
 
 ---
 
-## ภาพรวม: 5 บริการที่ต้องสร้างเอง
+## ภาพรวม: 6 บริการที่ต้องสร้างเอง
 
 | # | บริการ | ชื่อที่แนะนำ | หน้าที่ |
 |---|---|---|---|
 | 1 | **Amazon DynamoDB** | `portfolio` | เก็บ workspace, watchlist, ผลวิเคราะห์, TTL |
 | 2 | **Amazon SNS** | `ai-equity-copilot-alerts` | ส่งอีเมลรายงาน |
-| 3 | **AWS Lambda** | `ai-equity-copilot-app` | รัน FastAPI + วิเคราะห์หุ้น (runtime `python3.12`, handler `app.handler`) |
-| 4 | **Lambda Function URL** | — | เปิดหน้าเว็บ HTTPS (ไม่ใช้ API Gateway) |
-| 5 | **Amazon EventBridge** | `daily-market-close-analysis` | cron ปลุก Lambda ทุกวันจันทร์–ศุกร์ 17:15 น. ไทย |
+| 3 | **Amazon S3** | `ai-equity-copilot-reports-<account-id>` | เก็บสำเนารายงาน JSON (`reports/...`) ที่ส่งออกทุกรอบ |
+| 4 | **AWS Lambda** | `ai-equity-copilot-app` | รัน FastAPI + วิเคราะห์หุ้น (runtime `python3.12`, handler `app.handler`) |
+| 5 | **Lambda Function URL** | — | เปิดหน้าเว็บ HTTPS (ไม่ใช้ API Gateway) |
+| 6 | **Amazon EventBridge** | `daily-market-close-analysis` | cron ปลุก Lambda ทุกวันจันทร์–ศุกร์ 17:15 น. ไทย |
 | — | **Amazon Bedrock** | `amazon.nova-lite-v1:0` | เรียกผ่าน `boto3` จากในโค้ด ไม่ต้องสร้าง resource |
 
 ค่าที่ต้องใช้เหมือนกันทุกขั้น (จดไว้):
@@ -116,6 +117,18 @@ aws sns list-subscriptions-by-topic --topic-arn "$TOPIC_ARN" --region us-east-1 
 
 ---
 
+## ขั้นที่ 2.5 — สร้าง S3 Bucket สำหรับเก็บสำเนารายงาน (คลิกเอง)
+
+1. Console → ค้นหา **S3** → **Create bucket**
+2. **Bucket name:** `ai-equity-copilot-reports-<account-id>` (ต้องไม่ซ้ำกับใครในโลก — ใส่เลขบัญชีต่อท้าย)
+3. **Region:** `us-east-1` แล้วปล่อย **Block all public access** ไว้ตามเดิม (เปิดอยู่)
+4. **Default encryption:** `SSE-S3 (AES-256)` → กด **Create bucket**
+5. (ไม่บังคับ) **Management** → **Create lifecycle rule** → name `expire-report-copies`, prefix `reports/`, **Expire current versions: 30 วัน**
+
+> bucket นี้เก็บเฉพาะสำเนา JSON ของรายงาน (`reports/<พอร์ต>/<วันที่>/<manual|scheduled>.json`) ไม่ได้ทำ static hosting ถ้าไม่สร้างหรือไม่ใส่ `REPORT_BUCKET` แอปยังส่งอีเมลได้ปกติ แต่จะไม่มีสำเนาให้เปิดย้อนหลัง
+
+---
+
 ## ขั้นที่ 3 — สร้าง Lambda Function (คลิกเอง)
 
 ### 3.1 สร้างฟังก์ชัน
@@ -141,6 +154,7 @@ aws sns list-subscriptions-by-topic --topic-arn "$TOPIC_ARN" --region us-east-1 
 |---|---|
 | `PORTFOLIO_TABLE` | `portfolio` |
 | `SNS_TOPIC_ARN` | วางค่า ARN ของ SNS จากขั้นที่ 2 |
+| `REPORT_BUCKET` | ชื่อ S3 bucket จากขั้นที่ 2.5 เช่น `ai-equity-copilot-reports-123456789012` |
 | `BEDROCK_MODEL_ID` | `amazon.nova-lite-v1:0` |
 | `CACHE_TTL_SECONDS` | `3600` |
 | `USD_TO_THB` | `36.0` |
@@ -310,10 +324,11 @@ if [ -n "$TOPIC_ARN" ]; then
   aws sns delete-topic --topic-arn "$TOPIC_ARN" --region us-east-1
 fi
 
-# 4) ลบตาราง DynamoDB + ถัง S3 ชั่วคราว + ไฟล์ใน /tmp
+# 4) ลบตาราง DynamoDB + ถัง S3 (ทั้งถังอัปโหลดโค้ดและถังสำเนารายงาน) + ไฟล์ใน /tmp
 aws dynamodb delete-table --table-name portfolio --region us-east-1
 ACC_ID=$(aws sts get-caller-identity --query Account --output text)
 aws s3 rb "s3://ai-equity-manual-${ACC_ID}" --force 2>/dev/null || true
+aws s3 rb "s3://ai-equity-copilot-reports-${ACC_ID}" --force 2>/dev/null || true
 rm -rf /tmp/aws-financial /tmp/build /tmp/function.zip /tmp/pip-cache
 ```
 
