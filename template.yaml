@@ -3,7 +3,7 @@ Transform: AWS::Serverless-2016-10-31
 Description: >-
   AI Equity Co-Pilot (Ultra-Lean AWS Serverless Edition)
   - Lambda Function URL + Mangum (FastAPI หน้าเว็บ + REST API ในตัวเดียว)
-  - DynamoDB (Watchlist แยก Workspace, ประวัติผลวิเคราะห์, TTL Smart Cache)
+  - DynamoDB (Watchlist แยก Workspace, ผลวิเคราะห์ล่าสุดแบบ TTL Smart Cache)
   - Bedrock (Converse API), EventBridge (cron หลังตลาดปิด), SNS (อีเมลแจ้งเตือน)
 
 Parameters:

@@ -37,7 +37,7 @@ bash scripts/deploy_learnerlab.sh
 
 ### Gemini API key คืออะไร (AI สำรอง)
 
-Learner Lab มักไม่ให้สิทธิ์ `bedrock:InvokeModel` ทำให้ระบบต้องสรุปด้วยกฎเทคนิค (ป้าย **Rule-based Fallback** สีเหลือง) ถ้าใส่ key นี้ ระบบจะเรียก **Gemini** เป็น AI สำรองก่อนตกไปกฎเทคนิค — ไม่ใส่ก็ใช้ระบบได้ครบทุกฟีเจอร์
+Learner Lab มักไม่ให้สิทธิ์ `bedrock:InvokeModel` ทำให้ระบบต้องสรุปด้วยกฎเทคนิค (ป้าย **กฎเทคนิค · ไม่ใช่ AI**) ถ้าใส่ key นี้ ระบบจะเรียก **Gemini** เป็น AI สำรองก่อนตกไปกฎเทคนิค — ไม่ใส่ก็ใช้ระบบได้ครบทุกฟีเจอร์
 
 - key จะถูกส่งเป็น **Parameter ของ CloudFormation** (`NoEcho: true`) แล้ว SAM ฉีดเป็น environment variable `GEMINI_API_KEY` ให้ Lambda — **ไม่มี key ใน git**
 - **ไม่มีการเพิ่ม AWS service ใด ๆ** (ยังคง Lambda, DynamoDB, Bedrock, EventBridge, SNS = 5 บริการ)
@@ -53,7 +53,9 @@ Learner Lab มักไม่ให้สิทธิ์ `bedrock:InvokeModel` 
 3. เลือกวิธี build ที่ตรงกับ runtime `python3.12` (ใช้ Python 3.12 ที่เพิ่งติดตั้ง / Docker ถ้ามี)
 4. ติดตั้ง `boto3` ถ้าจำเป็น แล้วรัน preflight ตรวจสิทธิ์ Bedrock + บริการที่ต้องใช้
 5. `sam build` → `sam deploy` ด้วย `.aws-sam/build/template.yaml` (template ที่มีไลบรารีครบ) แบบไม่ต้องตอบคำถาม
-6. ส่ง `GeminiApiKey` (ถ้ากรอก key ตอนสคริปต์ถาม) และพิมพ์ **DashboardUrl** ให้เปิดใช้งานทันที> **หมายเหตุ:** หาก preflight แจ้งว่า Bedrock ถูกปฏิเสธสิทธิ์ (`AccessDeniedException`) ไม่ต้องกังวล ระบบจะใช้ **AI สำรอง Google Gemini** ก่อน (เมื่อกรอก key ตอนสคริปต์ถาม) ถ้าไม่มี key จะสลับไปใช้ Rule-based fallback — ป้ายบนการ์ดระบุชัดเจนทุกกรณี และแอปทำงานครบทุกฟีเจอร์
+6. ส่ง `GeminiApiKey` (ถ้ากรอก key ตอนสคริปต์ถาม) และพิมพ์ **DashboardUrl** ให้เปิดใช้งานทันที
+
+> **หมายเหตุ:** หาก preflight แจ้งว่า Bedrock ถูกปฏิเสธสิทธิ์ (`AccessDeniedException`) ไม่ต้องกังวล ระบบจะใช้ **AI สำรอง Google Gemini** ก่อน (เมื่อกรอก key ตอนสคริปต์ถาม) ถ้าไม่มี key จะสลับไปใช้กฎเทคนิค — ป้ายบนการ์ดระบุชัดเจนทุกกรณี และแอปทำงานครบทุกฟีเจอร์
 
 ออปชันเสริม: `--stack my-group` (เปลี่ยนชื่อ stack), `--model us.amazon.nova-lite-v1:0` (ใช้ cross-region inference profile), `--gemini-key <key>` (AI สำรองจาก Google AI Studio), `--skip-preflight` (ข้ามการตรวจ)
 
@@ -110,5 +112,5 @@ rm -rf /tmp/aws-financial /tmp/pip-cache
 | `No space left on device` | ยังทำงานใน home directory → ต้องอยู่ใต้ `/tmp` ตามขั้นตอนที่ 1 |
 | preflight ❌ Bedrock | แล็บบล็อกสิทธิ์ — ใช้ `--skip-preflight` แล้วใส่ `--gemini-key` เพื่อใช้ AI สำรอง (หรือเดโมด้วย rule-based fallback) |
 | note ขึ้นว่า `Gemini: ... HTTP 503` | Google แจ้งว่าโมเดลไม่พร้อมใช้งานชั่วคราว — โค้ดลองซ้ำอีก 1 ครั้ง (รวม 2 ครั้ง) แล้วสลับไป `gemini-3.8-flash` / `gemini-3.1-flash-lite` ให้เองอยู่แล้ว ถ้ายังไม่ได้ให้รอ 1-2 นาทีแล้วกด “บังคับวิเคราะห์ใหม่” อีกครั้ง |
-| ขึ้นแค่ป้าย **Rule-based Fallback** ไม่ขึ้น **AI สำรอง (Gemini)** | ตอนสคริปต์ถาม `Gemini API key` ไม่ได้วาง key (หรือกด Enter ข้าม), key ไม่ถูกต้อง/หมดสิทธิ์ หรือยังไม่ได้กด “บังคับวิเคราะห์ใหม่” (ผลเก่ายังอยู่ใน Smart Cache) |
+| ขึ้นแค่ป้าย **กฎเทคนิค · ไม่ใช่ AI** ไม่ขึ้น **Gemini · AI สำรอง** | ตอนสคริปต์ถาม `Gemini API key` ไม่ได้วาง key (หรือกด Enter ข้าม), key ไม่ถูกต้อง/หมดสิทธิ์ หรือยังไม่ได้กด “บังคับวิเคราะห์ใหม่” (ผลเก่ายังอยู่ใน Smart Cache) |
 | สคริปต์ไม่ถามอีเมล/Gemini key | รันโดยไม่มี terminal จริง หรือส่งค่ามาแล้วผ่าน flag (`--email`, `--gemini-key`) / env (`ALERT_EMAIL`, `GEMINI_API_KEY`) — ใส่ flag ตรง ๆ ได้ตามหัวข้อออปชันเสริม |
