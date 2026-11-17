@@ -7,6 +7,21 @@
 
 ---
 
+## ลิงก์สำหรับส่งงาน (Submission Links)
+
+| # | รายการที่ต้องส่ง | ลิงก์ |
+|---|---|---|
+| 1 | **Source Code (Public Repository)** | `https://github.com/Nattasit589/aws-financial` |
+| 2 | **Step-by-Step Documentation** | `https://github.com/Nattasit589/aws-financial/blob/main/QUICKSTART.md` |
+| 3 | **AWS Architecture Diagram** | `https://github.com/Nattasit589/aws-financial/blob/main/architecture-diagram.png` |
+| 4 | **Video / Vlog Implementation** | ⬜ *รอใส่ลิงก์วิดีโอ (YouTube / Google Drive แบบเปิดสาธารณะ)* |
+
+> ทุกลิงก์เป็นการเปิดจาก repo **public** นี้โดยตรง ไม่ต้องล็อกอิน และไม่ต้องดาวน์โหลดไฟล์
+>
+> **คู่มือฉบับอื่น (สำหรับกลุ่มที่ใช้บัญชีต่างกัน):** [QUICKSTART.md](QUICKSTART.md) ฉบับย่อ 3 คำสั่งบน CloudShell · [SETUP_LEARNER_LAB.md](SETUP_LEARNER_LAB.md) ฉบับละเอียดสำหรับ AWS Academy Learner Lab · [SETUP_GUIDE.md](SETUP_GUIDE.md) บัญชี AWS ปกติ · [MANUAL_CONSOLE_SETUP.md](MANUAL_CONSOLE_SETUP.md) ทำมือทีละคลิกใน Console · [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md) เช็กลิสต์ซ้อมเดโม 10 นาที
+
+---
+
 ## ประโยชน์ของแอปพลิเคชันและโมเดลธุรกิจ (Application Benefit & Level 5 Viability)
 
 - **แก้ปัญหาจริงของนักลงทุนรายย่อย:** ลดเวลาอ่านข่าวและดูกราฟหุ้นหลายตัวจากวันละ 1–2 ชั่วโมง เหลือเพียง **30 วินาที** ด้วยบทสรุปคะแนน (0–100), สัญญาณ (Buy / Watch / Sell), จุดเข้าซื้อ-ตัดขาดทุน และปัจจัยเสี่ยงภาษาไทย
