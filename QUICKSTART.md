@@ -2,6 +2,15 @@
 
 คู่มือฉบับรัดกุมสำหรับติดตั้งระบบ **AI Equity Co-Pilot** บน **AWS CloudShell** (Region: us-east-1) โดยไม่ต้องใช้ Docker และไม่ติดปัญหาพื้นที่ 1 GB ของ CloudShell เต็ม
 
+> ### 📚 เลือกอ่านตามสะดวก (เนื้อหาเดียวกัน)
+> | รูปแบบ | เหมาะกับ | ลิงก์ |
+> |---|---|---|
+> | 📄 **Markdown** — ต้นฉบับ อัปเดตล่าสุด | ก๊อปคำสั่งไปวางใน CloudShell | [QUICKSTART.md](QUICKSTART.md) |
+> | 🖼 **PDF — มีภาพหน้าจอทุกขั้น** | พิมพ์ส่งอาจารย์ / อ่านบนมือถือ | [Doc_Quickstart.pdf](Doc_Quickstart.pdf) |
+>
+> PDF คือฉบับภาพหน้าจอ (export 17 พ.ย. 2026) คำสั่งหลักตรงกับ Markdown นี้แล้ว — ถ้าเจอข้อความต่างกันให้ยึด Markdown เป็นหลัก
+> จุดที่ PDF ยังต่างเล็กน้อย: หน้า 2 บอก Region "top-left" (จริงคือ**มุมขวาบน**), หน้า 6 ให้ลิงก์ `aistudio.google.com/apps` (หน้าขอคีย์โดยตรงคือ [aistudio.google.com/apikey](https://aistudio.google.com/apikey)), หน้า 11 เรียกปุ่มว่า "Analyze" (บนหน้าเว็บจริงคือ **"วิเคราะห์พอร์ต"**)
+
 ---
 
 ## ขั้นตอนที่ 1: เตรียมสภาพแวดล้อมและ Clone โปรเจกต์ใน /tmp
@@ -34,6 +43,8 @@ bash scripts/deploy_learnerlab.sh
 |---|---|
 | `อีเมลรับแจ้งเตือน SNS (เว้นว่างได้):` | อีเมลจริง เช่น `name@gmail.com` แล้วกด Enter |
 | `Gemini API key (เว้นว่างได้):` | วาง key จาก [Google AI Studio](https://aistudio.google.com/apikey) — **ถ้ายังไม่มี ให้กด Enter ข้าม** |
+
+> ถ้าส่ง `--email you@example.com` มาพร้อมคำสั่ง สคริปต์จะข้ามคำถามอีเมลและถามเฉพาะ Gemini API key — ผลลัพธ์เท่ากัน ไม่ต้องแก้คำสั่ง
 
 ### Gemini API key คืออะไร (AI สำรอง)
 

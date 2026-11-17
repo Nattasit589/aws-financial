@@ -11,9 +11,9 @@
 
 | # | รายการที่ต้องส่ง | ลิงก์ |
 |---|---|---|
-| 1 | **Source Code (Public Repository)** | `https://github.com/Nattasit589/aws-financial` |
-| 2 | **Step-by-Step Documentation** | `https://github.com/Nattasit589/aws-financial/blob/main/QUICKSTART.md` |
-| 3 | **AWS Architecture Diagram** | `https://github.com/Nattasit589/aws-financial/blob/main/architecture-diagram.png` |
+| 1 | **Source Code (Public Repository)** | [github.com/Nattasit589/aws-financial](https://github.com/Nattasit589/aws-financial) |
+| 2 | **Step-by-Step Documentation** | [QUICKSTART.md](QUICKSTART.md) · [ฉบับ PDF (ภาพหน้าจอ)](Doc_Quickstart.pdf) |
+| 3 | **AWS Architecture Diagram** | [architecture-diagram.png](architecture-diagram.png) |
 | 4 | **Video / Vlog Implementation** | ⬜ *รอใส่ลิงก์วิดีโอ (YouTube / Google Drive แบบเปิดสาธารณะ)* |
 
 > ทุกลิงก์เป็นการเปิดจาก repo **public** นี้โดยตรง ไม่ต้องล็อกอิน และไม่ต้องดาวน์โหลดไฟล์
@@ -87,7 +87,7 @@ Amazon EventBridge (ปลุก Lambda วิเคราะห์ทุกพ�
 ก่อน deploy ให้รัน `python scripts/preflight.py` เพื่อตรวจ credential, IAM role (`LabRole`) และ trust policy, CloudFormation, S3, Lambda, DynamoDB, SNS, EventBridge, CloudWatch Logs, Function URL และทดสอบเรียก Bedrock จริง 1 ครั้ง (ผล Bedrock ไม่บล็อกการ deploy เพราะระบบมี AI สำรอง)
 
 **คู่มือแยกตามประเภทบัญชี:**
-- ⚡ **กลุ่มอื่นที่ต้องการ clone แล้วติดตั้งใน 3 คำสั่ง: [QUICKSTART.md](QUICKSTART.md)** (CloudShell, ไม่ต้องลงอะไรในเครื่อง)
+- ⚡ **กลุ่มอื่นที่ต้องการ clone แล้วติดตั้งด้วยชุดคำสั่งเดียว: [QUICKSTART.md](QUICKSTART.md)** (CloudShell, ไม่ต้องลงอะไรในเครื่อง) · [ฉบับ PDF](Doc_Quickstart.pdf)
 - 🎓 **AWS Academy Learner Lab (เส้นทางหลักของรายวิชา): [SETUP_LEARNER_LAB.md](SETUP_LEARNER_LAB.md)**
 - ☁️ บัญชี AWS ปกติ: [SETUP_GUIDE.md](SETUP_GUIDE.md)
 
