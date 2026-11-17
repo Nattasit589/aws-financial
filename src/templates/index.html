@@ -354,7 +354,7 @@
             <div class="sentiment-head"><h2 id="sentiment-title"><span data-icon="activity"></span>Greed &amp; Fear Index</h2><span id="sentiment-coverage" class="small muted"></span></div>
             <div class="sentiment-body">
               <div class="sentiment-score"><span id="sentiment-emoji" class="sentiment-emoji" aria-hidden="true">🌡</span><div><strong id="sentiment-value" class="number">—</strong><small>/ 100</small><p id="sentiment-band" class="sentiment-band"></p></div></div>
-              <div class="sentiment-meter" role="img" aria-labelledby="sentiment-value"><span id="sentiment-fill" class="sentiment-meter-fill"></span><span id="sentiment-pin" class="sentiment-meter-pin"></span><span class="sentiment-meter-scale" aria-hidden="true"><i>กลัวสุดขีด</i><i>กลาง</i><i>โลภสุดขีด</i></span></div>
+              <div class="sentiment-meter" role="img" aria-labelledby="sentiment-value"><span id="sentiment-fill" class="sentiment-meter-fill"></span><span id="sentiment-pin" class="sentiment-meter-pin"></span><span class="sentiment-meter-scale" aria-hidden="true"><i>Extreme Fear</i><i>Neutral</i><i>Extreme Greed</i></span></div>
               <div class="sentiment-drivers"><h3 class="detail-title">ปัจจัยที่ขยับดัชนีมากที่สุด</h3><ul id="sentiment-drivers" class="detail-list"></ul></div>
               <div class="sentiment-history"><h3 class="detail-title">แนวโน้ม 30 วันซื้อขาย</h3><div id="sentiment-chart"></div></div>
               <ul id="sentiment-components" class="sentiment-components" aria-label="องค์ประกอบของดัชนี"></ul>
@@ -498,7 +498,7 @@
       panel.hidden=false;
       $('sentiment-emoji').textContent=band.emoji||'🌡';
       $('sentiment-value').textContent=fmt(s.score,1);
-      $('sentiment-band').textContent=(band.label_th||'')+(band.label?' · '+band.label:'');
+      $('sentiment-band').textContent=band.label||'';
       $('sentiment-coverage').textContent=s.coverage?('ใช้ข้อมูล '+s.coverage.used+' / '+s.coverage.total+' องค์ประกอบ'):'';
       const meter=panel.querySelector('.sentiment-meter');
       meter.style.setProperty('--pct',scoreValue+'%');

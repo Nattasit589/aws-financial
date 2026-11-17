@@ -243,12 +243,17 @@ class SentimentTests(unittest.TestCase):
             "ai": {"score": 60, "signal": signal, "news_tone": tone, "risk_level": "MEDIUM"},
         }
 
-    def test_bands_cover_five_levels(self):
+    def test_bands_cover_five_levels_in_english(self):
         self.assertEqual(sentiment.band(10)["key"], "extreme_fear")
         self.assertEqual(sentiment.band(35)["key"], "fear")
         self.assertEqual(sentiment.band(50)["key"], "neutral")
         self.assertEqual(sentiment.band(65)["key"], "greed")
         self.assertEqual(sentiment.band(95)["key"], "extreme_greed")
+        self.assertEqual(
+            [sentiment.band(value)["label"] for value in (10, 35, 50, 65, 95)],
+            ["Extreme Fear", "Fear", "Neutral", "Greed", "Extreme Greed"],
+        )
+        self.assertTrue(all(sentiment.band(value)["label"].isascii() for value in (10, 35, 50, 65, 95)))
 
     def test_portfolio_only_index_renormalises_weights(self):
         results = [

@@ -390,15 +390,14 @@ def _sentiment_lines(index: dict | None) -> list[str]:
         return []
     band_info = index.get("band") or {}
     emoji = band_info.get("emoji") or "🌡"
-    label = band_info.get("label_th") or band_info.get("label") or "-"
-    label_en = band_info.get("label") or ""
+    label = band_info.get("label") or "-"
     score = index.get("score")
 
     lines = [
         "",
-        "🌡 Greed & Fear Index (ตลาด + พอร์ต)",
+        "🌡 Greed & Fear Index (market + portfolio)",
         "─" * 34,
-        f"{emoji} {score}/100 · {label}" + (f" ({label_en})" if label_en and label_en != label else ""),
+        f"{emoji} {score}/100 · {label}",
     ]
 
     components = index.get("components") or []

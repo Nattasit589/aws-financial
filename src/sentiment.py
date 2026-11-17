@@ -50,12 +50,13 @@ COMPONENT_NAMES = {
     "signals": "สัญญาณ AI ในพอร์ต",
 }
 
+# ระดับของดัชนีใช้ชื่อภาษาอังกฤษตามมาตรฐานที่นักลงทุนคุ้นเคย
 BANDS = (
-    (25.0, "extreme_fear", "Extreme Fear", "กลัวสุดขีด", "🥶", "negative"),
-    (45.0, "fear", "Fear", "กลัว", "😨", "warning"),
-    (55.0, "neutral", "Neutral", "เป็นกลาง", "😐", "neutral"),
-    (75.0, "greed", "Greed", "โลภ", "🤑", "positive"),
-    (101.0, "extreme_greed", "Extreme Greed", "โลภสุดขีด", "🔥", "positive"),
+    (25.0, "extreme_fear", "Extreme Fear", "🥶", "negative"),
+    (45.0, "fear", "Fear", "😨", "warning"),
+    (55.0, "neutral", "Neutral", "😐", "neutral"),
+    (75.0, "greed", "Greed", "🤑", "positive"),
+    (101.0, "extreme_greed", "Extreme Greed", "🔥", "positive"),
 )
 
 # องค์ประกอบจากพอร์ตต้องมีหุ้นอย่างน้อยเท่านี้ ไม่งั้น 1 หุ้นจะลากดัชนีทั้งตลาด
@@ -89,16 +90,10 @@ def _sma(values: list[float], period: int) -> float | None:
 
 def band(score: float) -> dict:
     """แปลงคะแนนเป็นระดับความกลัว/โลภ 5 ขั้น"""
-    for ceiling, key, label_en, label_th, emoji, tone in BANDS:
+    for ceiling, key, label, emoji, tone in BANDS:
         if score < ceiling:
-            return {
-                "key": key,
-                "label": label_en,
-                "label_th": label_th,
-                "emoji": emoji,
-                "tone": tone,
-            }
-    return {"key": "greed", "label": "Greed", "label_th": "โลภ", "emoji": "🤑", "tone": "positive"}
+            return {"key": key, "label": label, "emoji": emoji, "tone": tone}
+    return {"key": "greed", "label": "Greed", "emoji": "🤑", "tone": "positive"}
 
 
 # --------------------------------------------------------------------------

@@ -180,12 +180,12 @@ def sentiment_fixture(results: list[dict]) -> dict | None:
     ]
     total = sum(component["score"] * component["weight"] for component in components)
     score_value = round(total / sum(component["weight"] for component in components), 1)
-    bands = ((25, "extreme_fear", "Extreme Fear", "กลัวสุดขีด", "🥶"), (45, "fear", "Fear", "กลัว", "😨"),
-             (55, "neutral", "Neutral", "เป็นกลาง", "😐"), (75, "greed", "Greed", "โลภ", "🤑"),
-             (101, "extreme_greed", "Extreme Greed", "โลภสุดขีด", "🔥"))
-    for ceiling, key, label, label_th, emoji in bands:
+    bands = ((25, "extreme_fear", "Extreme Fear", "🥶"), (45, "fear", "Fear", "😨"),
+             (55, "neutral", "Neutral", "😐"), (75, "greed", "Greed", "🤑"),
+             (101, "extreme_greed", "Extreme Greed", "🔥"))
+    for ceiling, key, label, emoji in bands:
         if score_value < ceiling:
-            band = {"key": key, "label": label, "label_th": label_th, "emoji": emoji}
+            band = {"key": key, "label": label, "emoji": emoji}
             break
     history = [{"date": f"2026-10-{day:02d}", "score": round(score_value - 8 + (day % 7) * 2.4, 1)} for day in range(18, 32)] + \
               [{"date": f"2026-11-{day:02d}", "score": round(score_value - 4 + (day % 9) * 1.1, 1)} for day in range(1, 17)]
