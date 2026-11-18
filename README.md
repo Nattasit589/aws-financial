@@ -14,7 +14,7 @@
 | 1 | **Source Code (Public Repository)** | [github.com/Nattasit589/aws-financial](https://github.com/Nattasit589/aws-financial) |
 | 2 | **Step-by-Step Documentation** | [QUICKSTART.md](QUICKSTART.md) · [ฉบับ PDF (ภาพหน้าจอ)](Doc_Quickstart.pdf) |
 | 3 | **AWS Architecture Diagram** | [architecture-diagram.png](architecture-diagram.png) |
-| 4 | **Video / Vlog Implementation** | ⬜ *รอใส่ลิงก์วิดีโอ (YouTube / Google Drive แบบเปิดสาธารณะ)* |
+| 4 | **Video / Vlog Implementation** | https://drive.google.com/file/d/1T84E9_ZCv16tBTPRULlVBdHW66ge9Pjh/view?usp=sharing |
 
 > ทุกลิงก์เป็นการเปิดจาก repo **public** นี้โดยตรง ไม่ต้องล็อกอิน และไม่ต้องดาวน์โหลดไฟล์
 >
